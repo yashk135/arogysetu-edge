@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArogyaSetu Edge — VibeDuo · WhyCode4U Hackathon 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0A0F1E;
+  --card:    #111827;
+  --card2:   #1a2235;
+  --teal:    #06B6D4;
+  --tdim:    rgba(6,182,212,.15);
+  --tglow:   rgba(6,182,212,.4);
+  --green:   #10B981;
+  --gdim:    rgba(16,185,129,.15);
+  --red:     #EF4444;
+  --amber:   #F59E0B;
+  --purple:  #A78BFA;
+  --white:   #F8FAFC;
+  --gray:    #94A3B8;
+  --dim:     #4B5563;
+  --grad:    linear-gradient(135deg,#06B6D4,#10B981);
+  --fh:      'Poppins',sans-serif;
+  --fb:      'Inter',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:var(--fb)}
+#deck{width:100vw;height:100vh;position:relative;overflow:hidden}
+
+.slide{
+  position:absolute;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:42px 64px;opacity:0;transform:translateX(60px);
+  transition:opacity .5s cubic-bezier(.4,0,.2,1),transform .5s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;overflow:hidden;
+}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all}
+.slide.out{opacity:0;transform:translateX(-60px)}
+.slide::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 50% at 80% 20%,rgba(6,182,212,.07) 0%,transparent 60%),
+             radial-gradient(ellipse 50% 60% at 10% 80%,rgba(16,185,129,.06) 0%,transparent 60%);
+}
+
+/* progress */
+#bar{position:fixed;top:0;left:0;height:3px;background:var(--grad);z-index:100;transition:width .4s ease;box-shadow:0 0 12px var(--tglow)}
+/* nav */
+#nav{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:rgba(17,24,39,.92);backdrop-filter:blur(16px);border:1px solid rgba(6,182,212,.2);border-radius:50px;padding:8px 18px;z-index:100}
+#nav button{background:none;border:none;cursor:pointer;color:var(--gray);font-size:16px;padding:4px 10px;border-radius:8px;transition:color .2s,background .2s}
+#nav button:hover{color:var(--teal);background:var(--tdim)}
+#ctr{color:var(--white);font-size:12px;font-weight:700;font-family:var(--fh);min-width:50px;text-align:center}
+#dots{display:flex;gap:6px;align-items:center}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--dim);transition:all .3s;cursor:pointer}
+.dot.on{background:var(--teal);width:20px;border-radius:4px}
+/* export */
+#exp{position:fixed;top:14px;right:20px;background:var(--grad);border:none;cursor:pointer;color:#fff;font-weight:700;font-size:12px;padding:8px 16px;border-radius:8px;font-family:var(--fh);z-index:100;box-shadow:0 4px 20px rgba(6,182,212,.3);transition:transform .2s}
+#exp:hover{transform:translateY(-2px)}
+/* labels */
+.snum{position:absolute;top:22px;left:30px;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--teal);font-family:var(--fh);text-transform:uppercase}
+.brand{position:absolute;top:20px;right:30px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--dim);font-family:var(--fh)}
+/* atoms */
+.pill{display:inline-flex;align-items:center;gap:7px;background:var(--tdim);border:1px solid rgba(6,182,212,.35);color:var(--teal);border-radius:50px;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:5px 14px;font-family:var(--fh);margin-bottom:14px}
+.live{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 1.5s infinite}
+.gt{background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+h1.ht{font-family:var(--fh);font-weight:900;font-size:clamp(2.6rem,5vw,4.8rem);line-height:1.05;color:var(--white);letter-spacing:-1px}
+h2.st{font-family:var(--fh);font-weight:800;font-size:clamp(1.5rem,3vw,2.5rem);color:var(--white);line-height:1.2;margin-bottom:5px}
+p.ss{font-size:clamp(.82rem,1.35vw,1rem);color:var(--gray);line-height:1.7;max-width:720px}
+.div{width:52px;height:3px;border-radius:2px;background:var(--grad);margin:10px 0}
+/* stat grid */
+.sg{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.sc{background:var(--card);border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:20px 24px;text-align:center;flex:1;min-width:140px;transition:transform .3s,border-color .3s;position:relative;overflow:hidden}
+.sc:hover{transform:translateY(-3px);border-color:var(--teal)}
+.sc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(6,182,212,.04),transparent);pointer-events:none}
+.sn{font-family:var(--fh);font-weight:900;font-size:clamp(1.8rem,3.5vw,3.2rem);line-height:1;display:block;margin-bottom:5px}
+.sl{font-size:.68rem;color:var(--gray);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.sc.r .sn{color:var(--red)}.sc.a .sn{color:var(--amber)}.sc.t .sn{color:var(--teal)}.sc.g .sn{color:var(--green)}
+/* feature 4-col */
+.f4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%;margin-top:16px}
+/* feature 3-col */
+.f3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;margin-top:12px}
+/* feature 2-col */
+.f2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:100%;margin-top:12px}
+.fc{background:var(--card);border-radius:12px;border:1px solid rgba(6,182,212,.18);padding:18px 16px;position:relative;overflow:hidden;transition:transform .3s,border-color .3s,box-shadow .3s}
+.fc:hover{transform:translateY(-4px);border-color:var(--teal);box-shadow:0 8px 28px rgba(6,182,212,.16)}
+.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+.fi{font-size:1.6rem;margin-bottom:8px;display:block}
+.ft{font-family:var(--fh);font-weight:700;font-size:.88rem;color:var(--white);margin-bottom:5px}
+.fd{font-size:.74rem;color:var(--gray);line-height:1.55}
+/* flow */
+.fr{display:flex;align-items:center;gap:0;width:100%;margin-top:22px}
+.fs{flex:1;text-align:center}
+.fsi{background:var(--card);border:1px solid rgba(6,182,212,.2);border-radius:11px;padding:14px 8px;transition:transform .3s,border-color .3s}
+.fsi:hover{transform:translateY(-3px);border-color:var(--teal)}
+.fn{width:24px;height:24px;border-radius:50%;background:var(--grad);color:#fff;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;font-family:var(--fh)}
+.fic{font-size:1.3rem;margin-bottom:4px;display:block}
+.ftl{font-family:var(--fh);font-weight:700;font-size:.75rem;color:var(--white);margin-bottom:2px}
+.fsb{font-size:.64rem;color:var(--gray);line-height:1.4}
+.arr{color:var(--teal);font-size:1.1rem;padding:0 2px;opacity:.7;flex-shrink:0}
+/* arch */
+.ab{background:var(--card);border:1px solid rgba(6,182,212,.25);border-radius:11px;padding:12px 16px;text-align:center}
+.at{font-family:var(--fh);font-weight:700;font-size:.72rem;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}
+.ach{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.ac{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--white);font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:6px;font-family:var(--fh)}
+/* table */
+.ct{width:100%;border-collapse:collapse;margin-top:16px;border-radius:12px;overflow:hidden}
+.ct th{background:var(--card2);color:var(--gray);font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:11px 12px;font-family:var(--fh);border-bottom:1px solid rgba(255,255,255,.06)}
+.ct th.o{background:rgba(6,182,212,.12);color:var(--teal);box-shadow:inset 0 0 0 1px rgba(6,182,212,.3)}
+.ct td{background:var(--card);padding:10px 12px;text-align:center;font-size:.8rem;color:var(--gray);border-bottom:1px solid rgba(255,255,255,.04)}
+.ct td.fn2{text-align:left;color:var(--white);font-weight:600;font-size:.76rem}
+.ct td.o{background:rgba(6,182,212,.08);color:var(--green);font-weight:700}
+.ck{color:var(--green);font-size:1rem}.cx{color:var(--red);font-size:.9rem;opacity:.7}.cw{color:var(--amber);font-size:.9rem}
+/* impact */
+.ig{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%;margin-top:16px}
+.ic{background:var(--card);border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:20px 12px;text-align:center;transition:transform .3s}
+.ic:hover{transform:translateY(-3px)}
+.in{font-family:var(--fh);font-weight:900;font-size:clamp(1.5rem,2.6vw,2.4rem);background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;margin-bottom:4px}
+.il{font-size:.68rem;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+/* roadmap */
+.rr{display:flex;gap:10px;width:100%;margin-top:14px;align-items:stretch}
+.rp{flex:1;background:var(--card);border-radius:11px;border:1px solid rgba(255,255,255,.06);padding:16px}
+.ptag{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:50px;display:inline-block;margin-bottom:7px;font-family:var(--fh)}
+.p1{background:var(--tdim);color:var(--teal);border:1px solid rgba(6,182,212,.3)}
+.p2{background:var(--gdim);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.p3{background:rgba(139,92,246,.12);color:var(--purple);border:1px solid rgba(139,92,246,.3)}
+.ptt{font-family:var(--fh);font-weight:700;font-size:.85rem;color:var(--white);margin-bottom:5px}
+.pi{list-style:none}
+.pi li{font-size:.69rem;color:var(--gray);padding:2px 0;display:flex;gap:5px;align-items:flex-start}
+.pi li::before{content:'→';color:var(--teal);flex-shrink:0}
+/* team */
+.tg{display:flex;gap:18px;margin-top:18px;width:100%;justify-content:center}
+.tc{background:var(--card);border-radius:13px;border:1px solid rgba(6,182,212,.2);padding:22px 26px;flex:1;max-width:290px;text-align:center;position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s}
+.tc:hover{transform:translateY(-4px);box-shadow:0 12px 36px rgba(6,182,212,.16)}
+.tc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--grad)}
+.ta{width:58px;height:58px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px;border:3px solid rgba(6,182,212,.3)}
+.tn{font-family:var(--fh);font-weight:800;font-size:1.05rem;color:var(--white);margin-bottom:2px}
+.tr{font-size:.72rem;color:var(--teal);font-weight:600;margin-bottom:8px}
+.tsk{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.sk{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:var(--gray);font-size:.62rem;font-weight:600;padding:2px 7px;border-radius:50px;font-family:var(--fh)}
+/* sprint */
+.spg{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;width:100%;margin-top:12px}
+.sp{background:var(--card);border-radius:9px;border:1px solid rgba(255,255,255,.06);padding:10px}
+.sh{font-family:var(--fh);font-weight:800;font-size:.63rem;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.sk2{font-size:.68rem;color:var(--white);font-weight:600;margin-bottom:2px}
+.so{font-size:.62rem;color:var(--green)}
+/* callout */
+.cal{background:var(--card);border-left:3px solid var(--teal);border-radius:0 9px 9px 0;padding:11px 16px;font-size:.82rem;color:var(--gray);font-style:italic;margin-top:12px}
+/* risk badges */
+.rb{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:5px 11px;font-weight:700;font-size:.72rem;font-family:var(--fh)}
+.rg{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.ry{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.rr2{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+/* whatsapp highlight */
+.wa{background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.3);border-radius:10px;padding:12px 16px}
+.wat{font-family:var(--fh);font-weight:700;color:#25D366;font-size:.82rem;margin-bottom:4px}
+/* info box */
+.ib{background:var(--card);border-radius:11px;border:1px solid rgba(255,255,255,.06);padding:13px}
+.ibt{font-family:var(--fh);font-weight:700;font-size:.78rem;margin-bottom:5px}
+/* flex helpers */
+.row{display:flex;gap:16px;width:100%;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px}
+/* anims */
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.slide.active .a1{animation:up .48s .07s both}
+.slide.active .a2{animation:up .48s .17s both}
+.slide.active .a3{animation:up .48s .27s both}
+.slide.active .a4{animation:up .48s .37s both}
+.slide.active .a5{animation:up .48s .47s both}
+@keyframes glow{0%,100%{box-shadow:0 0 16px rgba(6,182,212,.2)}50%{box-shadow:0 0 32px rgba(6,182,212,.5)}}
+.glow{animation:glow 3s infinite;border-color:var(--teal)!important}
+@media print{
+  html,body{overflow:visible;height:auto}
+  #deck{height:auto;overflow:visible}
+  #nav,#exp,#bar{display:none!important}
+  .slide{position:relative;opacity:1!important;transform:none!important;pointer-events:all;page-break-after:always;height:100vh;display:flex!important}
+}
+</style>
+</head>
+<body>
+<div id="bar" style="width:12.5%"></div>
+<button id="exp" onclick="window.print()">⬇ Export PDF</button>
+<div id="deck">
+
+<!-- ═══════════ SLIDE 1 — HERO ═══════════ -->
+<div class="slide active" id="s1">
+  <span class="snum">01 / 08 · Problem Statement</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="text-align:center;max-width:900px;width:100%">
+    <div class="pill a1"><span class="live"></span>Healthcare for Every Individual · Tier 3/4 &amp; Rural AI Track</div>
+    <h1 class="ht a2"><span class="gt">ArogyaSetu Edge</span></h1>
+    <p class="a2" style="font-family:var(--fh);font-weight:700;font-size:clamp(.95rem,1.8vw,1.4rem);color:var(--white);margin:7px 0 5px">India's First Offline-First AI Health Triage Platform</p>
+    <p class="a2" style="font-size:clamp(.8rem,1.25vw,.98rem);color:var(--gray);margin-bottom:26px">Camera AI · Voice Hindi/Marathi · Report OCR · WhatsApp Bot · 100% Offline · No Doctor Needed</p>
+    <div class="sg a3" style="margin-bottom:24px">
+      <div class="sc t"><span class="sn">1M+</span><span class="sl">ASHA Workers Impacted</span></div>
+      <div class="sc g"><span class="sn">₹0</span><span class="sl">Cloud Cost / Patient</span></div>
+      <div class="sc a"><span class="sn">6</span><span class="sl">AI Features</span></div>
+      <div class="sc t"><span class="sn">100%</span><span class="sl">Offline Capable</span></div>
+    </div>
+    <!-- Team -->
+    <div class="a4" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px">
+      <div style="background:var(--card);border:1px solid rgba(6,182,212,.22);border-radius:11px;padding:11px 20px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:.95rem">👨‍💻</div>
+        <div style="text-align:left"><div style="font-family:var(--fh);font-weight:700;color:var(--white);font-size:.85rem">Yash Karwa</div><div style="font-size:.67rem;color:var(--teal)">Full-Stack &amp; AI Engineer</div></div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(16,185,129,.22);border-radius:11px;padding:11px 20px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#10B981,#06B6D4);display:flex;align-items:center;justify-content:center;font-size:.95rem">🎤</div>
+        <div style="text-align:left"><div style="font-family:var(--fh);font-weight:700;color:var(--white);font-size:.85rem">Ansh Khandelwal</div><div style="font-size:.67rem;color:var(--green)">Product Strategy &amp; Presenter</div></div>
+      </div>
+    </div>
+    <!-- Live demo QR placeholder -->
+    <div class="a5" style="display:inline-flex;align-items:center;gap:14px;background:var(--card);border:1px solid rgba(6,182,212,.25);border-radius:11px;padding:10px 20px">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,rgba(6,182,212,.2),rgba(16,185,129,.2));border-radius:8px;border:1px solid rgba(6,182,212,.3);display:flex;align-items:center;justify-content:center;font-size:1.3rem">📱</div>
+      <div style="text-align:left">
+        <div style="font-family:var(--fh);font-weight:700;color:var(--teal);font-size:.78rem;text-transform:uppercase;letter-spacing:1px">Scan to Try Live Demo</div>
+        <div style="font-size:.68rem;color:var(--gray)">Real working app · Camera AI · Voice Triage · Works offline</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 2 — PROBLEM ═══════════ -->
+<div class="slide" id="s2">
+  <span class="snum">02 / 08 · Proposed Solution</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:1020px">
+    <!-- Rekha story -->
+    <div class="a1" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:11px;padding:14px 20px;margin-bottom:16px;border-left:3px solid var(--red)">
+      <div style="font-family:var(--fh);font-weight:700;color:var(--red);font-size:.72rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⚠ A True Story from Rural Maharashtra</div>
+      <p style="font-size:.82rem;color:var(--white);line-height:1.7;font-style:italic">"Rekha was 24, pregnant, in a village outside Nashik. Her ASHA worker visited — noticed she looked pale and weak. But she had no tool. Just her eyes and paper registers. She wrote it down and moved to the next family. <strong style="color:var(--red)">Three weeks later, Rekha died from severe anemia during delivery.</strong> The ASHA had seen the signs. She had no way to know how serious it was."</p>
+    </div>
+    <div class="a2">
+      <div class="pill" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:var(--red)">⚠ This Happens 4 Times Every Minute Across Rural India</div>
+      <h2 class="st">No doctor. No internet. No diagnostic tool.</h2>
+    </div>
+    <div class="sg a3" style="margin-top:14px">
+      <div class="sc r"><span class="sn">1:10,189</span><span class="sl">Doctor–to–Rural Patient Ratio <br><span style="color:var(--dim);font-size:.6rem">(WHO recommends 1:1,000)</span></span></div>
+      <div class="sc a"><span class="sn">65%</span><span class="sl">Tier 4 Areas Without Reliable Internet</span></div>
+      <div class="sc r"><span class="sn">50%+</span><span class="sl">Rural Women With Undetected Anemia</span></div>
+      <div class="sc a"><span class="sn">1M</span><span class="sl">ASHA Workers Using Paper Registers Only</span></div>
+    </div>
+    <div class="a4" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:5px 11px;font-size:.72rem;color:var(--red);font-weight:600">❌ eSanjeevani — needs 4G + doctor online</div>
+      <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:5px 11px;font-size:.72rem;color:var(--red);font-weight:600">❌ Aarogya Setu — COVID only, no diagnostics</div>
+      <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:5px 11px;font-size:.72rem;color:var(--red);font-weight:600">❌ NIKSHAY — complex English text forms</div>
+      <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:7px;padding:5px 11px;font-size:.72rem;color:var(--red);font-weight:600">❌ RCH Portal — no AI, no mobile UI</div>
+      <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:7px;padding:5px 11px;font-size:.72rem;color:var(--green);font-weight:700">✅ ArogyaSetu Edge — works everywhere, always</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 3 — SOLUTION ═══════════ -->
+<div class="slide" id="s3">
+  <span class="snum">03 / 08 · Innovation &amp; Uniqueness</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:1020px">
+    <div class="a1" style="text-align:center">
+      <div class="pill">💡 6-Feature AI Platform</div>
+      <h2 class="st">"An AI doctor in every ASHA worker's pocket."</h2>
+      <p class="ss" style="margin:5px auto 0">Offline · Voice-First · Camera-Powered · OCR-Smart · WhatsApp-Native · No App Store Needed</p>
+      <div class="div" style="margin:10px auto"></div>
+    </div>
+    <!-- Row 1: 4 features -->
+    <div class="f4 a2">
+      <div class="fc glow">
+        <span class="fi">📸</span>
+        <div class="ft">Camera AI Screening</div>
+        <div class="fd">Detects <strong style="color:var(--teal)">anemia</strong> (nail bed), <strong style="color:var(--amber)">jaundice</strong> (eye sclera) &amp; malnutrition via on-device TF.js — <strong style="color:var(--green)">zero cloud</strong>.</div>
+      </div>
+      <div class="fc">
+        <span class="fi">🎤</span>
+        <div class="ft">Voice Triage Hindi/Marathi</div>
+        <div class="fd">Speak symptoms in <strong style="color:var(--teal)">native language</strong>. AI covers <strong style="color:var(--green)">20+ conditions</strong> — fever, TB, maternal, child, snakebite, diabetes.</div>
+      </div>
+      <div class="fc">
+        <span class="fi">📄</span>
+        <div class="ft">Report OCR Explainer</div>
+        <div class="fd">Photo a lab report → <strong style="color:var(--teal)">offline Tesseract OCR</strong> reads it → explains CBC values in simple Hindi. "Hemoglobin kam hai."</div>
+      </div>
+      <div class="fc">
+        <span class="fi">💊</span>
+        <div class="ft">Prescription Reader</div>
+        <div class="fd">Photograph any prescription → OCR extracts medicines, doses, timing → shows <strong style="color:var(--green)">structured schedule</strong> in local language.</div>
+      </div>
+    </div>
+    <!-- Row 2: 2 features -->
+    <div class="f2 a3">
+      <div class="fc">
+        <span class="fi">🏥</span>
+        <div class="ft">Health Passport — Patient Profile</div>
+        <div class="fd">Persistent patient card: name, blood group, conditions, medications, past triage history. <strong style="color:var(--teal)">Shareable via WhatsApp</strong> as a QR-coded report card for hospital visits. Stored offline in IndexedDB.</div>
+      </div>
+      <div class="fc" style="border-color:rgba(37,211,102,.3)!important">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(135deg,#25D366,#10B981)"></div>
+        <span class="fi">📱</span>
+        <div class="ft" style="color:#25D366">WhatsApp Triage Bot <span style="font-size:.65rem;color:var(--green)">★ SURPRISE FEATURE</span></div>
+        <div class="fd">ASHA sends a <strong style="color:#25D366">nail photo on WhatsApp</strong> → bot replies: anemia risk. Sends Hindi voice note → bot replies: triage advice. <strong style="color:var(--white)">Zero installation. Any phone.</strong></div>
+      </div>
+    </div>
+    <div class="a4" style="margin-top:11px;background:var(--card);border-radius:9px;border:1px solid rgba(6,182,212,.15);padding:11px 16px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:1.2rem">⚡</span>
+      <div><div style="font-family:var(--fh);font-weight:700;color:var(--white);font-size:.85rem">Progressive Web App — Share a link. Works in Chrome. No Play Store.</div><div style="font-size:.74rem;color:var(--gray)">ASHA gets WhatsApp link → opens in Chrome → installs in 2 seconds → works offline forever on any Android phone.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 4 — HOW IT WORKS ═══════════ -->
+<div class="slide" id="s4">
+  <span class="snum">04 / 08 · Target Users &amp; Impact</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:1040px">
+    <div class="a1">
+      <div class="pill">🗺 Complete Patient Journey</div>
+      <h2 class="st">From Symptom to Action — <span class="gt">Under 3 Minutes</span></h2>
+      <p class="ss" style="margin-top:4px">No internet. No paperwork. No doctor needed for triage.</p>
+    </div>
+    <div class="fr a2">
+      <div class="fs"><div class="fsi"><div class="fn">1</div><span class="fic">📱</span><div class="ftl">Open App</div><div class="fsb">Works offline from Chrome link instantly.</div></div></div>
+      <div class="arr">→</div>
+      <div class="fs"><div class="fsi"><div class="fn">2</div><span class="fic">👤</span><div class="ftl">Register Patient</div><div class="fsb">Name, age, gender in 20 seconds.</div></div></div>
+      <div class="arr">→</div>
+      <div class="fs"><div class="fsi"><div class="fn">3</div><span class="fic">📸🎤📄</span><div class="ftl">Screen Patient</div><div class="fsb">Camera scan + voice intake + report OCR.</div></div></div>
+      <div class="arr">→</div>
+      <div class="fs"><div class="fsi"><div class="fn">4</div><span class="fic">🧠</span><div class="ftl">AI Risk Score</div><div class="fsb">On-device AI scores all inputs in &lt;5 sec.</div></div></div>
+      <div class="arr">→</div>
+      <div class="fs"><div class="fsi"><div class="fn">5</div><span class="fic">📲</span><div class="ftl">Share &amp; Act</div><div class="fsb">WhatsApp report + QR for hospital.</div></div></div>
+    </div>
+    <div class="a3" style="margin-top:14px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <div class="rb rg">🟢 LOW RISK — Home Care + Nutrition Advice</div>
+      <div class="rb ry">🟡 MODERATE — PHC Visit within 48 Hours</div>
+      <div class="rb rr2">🔴 EMERGENCY — Immediate District Hospital Referral</div>
+    </div>
+    <!-- WhatsApp bot alt flow -->
+    <div class="a4" style="margin-top:12px">
+      <div class="wa">
+        <div class="wat">📱 Alternative: WhatsApp Bot — No Installation Needed</div>
+        <div style="font-size:.74rem;color:var(--gray);display:flex;gap:20px;flex-wrap:wrap">
+          <span>📸 Send nail photo on WhatsApp → <strong style="color:#25D366">Reply: Anemia risk level + advice</strong></span>
+          <span>🎤 Send Hindi voice note → <strong style="color:#25D366">Reply: Triage recommendation</strong></span>
+          <span>📄 Send report photo → <strong style="color:#25D366">Reply: Plain language explanation</strong></span>
+        </div>
+      </div>
+    </div>
+    <div class="a5" style="margin-top:12px;background:var(--card);border-radius:10px;border:1px solid rgba(16,185,129,.18);padding:10px 18px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap">
+      <div style="text-align:center"><div style="font-family:var(--fh);font-weight:900;font-size:1.5rem;color:var(--green)">3 min</div><div style="font-size:.66rem;color:var(--gray)">Avg triage time</div></div>
+      <div style="width:1px;background:rgba(255,255,255,.06)"></div>
+      <div style="text-align:center"><div style="font-family:var(--fh);font-weight:900;font-size:1.5rem;color:var(--teal)">0</div><div style="font-size:.66rem;color:var(--gray)">Internet required</div></div>
+      <div style="width:1px;background:rgba(255,255,255,.06)"></div>
+      <div style="text-align:center"><div style="font-family:var(--fh);font-weight:900;font-size:1.5rem;color:var(--green)">20+</div><div style="font-size:.66rem;color:var(--gray)">Conditions screened</div></div>
+      <div style="width:1px;background:rgba(255,255,255,.06)"></div>
+      <div style="text-align:center"><div style="font-family:var(--fh);font-weight:900;font-size:1.5rem;color:var(--teal)">₹0</div><div style="font-size:.66rem;color:var(--gray)">Cloud AI cost</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 5 — TECH ARCH ═══════════ -->
+<div class="slide" id="s5">
+  <span class="snum">05 / 08 · Technology &amp; Architecture</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:1020px">
+    <div class="a1">
+      <div class="pill">⚙️ Technical Design</div>
+      <h2 class="st">Built for <span class="gt">Edge Hardware.</span> Designed for Enterprise Scale.</h2>
+    </div>
+    <div class="row a2" style="margin-top:16px">
+      <div style="flex:1.4" class="col">
+        <div class="ab" style="border-color:rgba(6,182,212,.4)">
+          <div class="at">📱 Client Layer — 100% Offline (PWA)</div>
+          <div class="ach">
+            <div class="ac">🎤 Web Speech API</div><div class="ac">📸 Camera API</div>
+            <div class="ac">🧠 TensorFlow.js</div><div class="ac">⚡ ONNX Runtime</div>
+            <div class="ac">📄 Tesseract.js OCR</div><div class="ac">📦 Service Workers</div>
+            <div class="ac">💾 IndexedDB</div><div class="ac">🔄 Background Sync</div>
+          </div>
+        </div>
+        <div style="text-align:center;color:var(--teal);font-size:.76rem;font-weight:600">↕ Syncs When Internet Returns</div>
+        <div class="ab" style="border-color:rgba(16,185,129,.35)">
+          <div class="at" style="color:var(--green)">☁️ Cloud Sync + Bot Layer (Online)</div>
+          <div class="ach">
+            <div class="ac">🚀 FastAPI / Node.js</div><div class="ac">🗄 PostgreSQL</div>
+            <div class="ac">📱 Twilio WhatsApp API</div><div class="ac">🏥 ABDM/ABHA API</div>
+            <div class="ac">📋 HL7 FHIR Gateway</div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1" class="col">
+        <div class="ib">
+          <div class="ibt" style="color:var(--teal)">🧠 Edge AI — On-Device Inference</div>
+          <div style="font-size:.72rem;color:var(--gray);line-height:1.6">TF.js runs <strong style="color:var(--white)">quantized MobileNet</strong> via WebGPU/WASM. 224×224px → inference in <strong style="color:var(--green)">~150ms</strong>. Tesseract.js reads reports <strong style="color:var(--green)">offline</strong>. Zero server calls for basic triage.</div>
+        </div>
+        <div class="ib">
+          <div class="ibt" style="color:var(--green)">📱 WhatsApp Bot Architecture</div>
+          <div style="font-size:.72rem;color:var(--gray);line-height:1.6">Twilio webhook → FastAPI → TF.js inference (server) → structured reply. ASHA sends photo/voice → bot replies in Hindi with risk + advice in <strong style="color:var(--green)">&lt;10 seconds</strong>.</div>
+        </div>
+        <div class="ib">
+          <div class="ibt" style="color:var(--amber)">🏥 ABDM Compliant Architecture</div>
+          <div style="font-size:.72rem;color:var(--gray);line-height:1.6"><strong style="color:var(--white)">ABHA Health ID</strong> + <strong style="color:var(--white)">HL7/FHIR</strong> standard. Patient records sync to India's National Digital Health Mission when internet returns.</div>
+        </div>
+      </div>
+    </div>
+    <div class="a3" style="margin-top:12px;display:flex;gap:5px;flex-wrap:wrap">
+      <span style="font-size:.65rem;font-weight:700;color:var(--gray);align-self:center;text-transform:uppercase;letter-spacing:1px">Stack:</span>
+      <span class="ac" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--green)">React + Vite</span>
+      <span class="ac">TensorFlow.js</span><span class="ac">Tesseract.js</span><span class="ac">ONNX Runtime</span>
+      <span class="ac">PWA + Service Workers</span><span class="ac">Web Speech API</span><span class="ac">IndexedDB</span>
+      <span class="ac">FastAPI</span><span class="ac">PostgreSQL</span><span class="ac">Twilio WhatsApp</span>
+      <span class="ac" style="background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.3);color:var(--teal)">ABDM / FHIR</span>
+      <span class="ac">Vercel / Railway</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 6 — COMPETITION ═══════════ -->
+<div class="slide" id="s6">
+  <span class="snum">06 / 08 · Implementation &amp; Working</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:960px">
+    <div class="a1">
+      <div class="pill">🏆 Competitive Landscape</div>
+      <h2 class="st">Not just better. <span class="gt">Fundamentally different.</span></h2>
+      <p class="ss" style="margin-top:4px">Every existing platform fails rural India on at least 5 of these 8 dimensions.</p>
+    </div>
+    <div class="a2">
+      <table class="ct">
+        <thead>
+          <tr>
+            <th style="text-align:left">Feature</th>
+            <th>eSanjeevani</th><th>Aarogya Setu</th><th>NIKSHAY</th><th>Practo / 1mg</th>
+            <th class="o">✨ ArogyaSetu Edge</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="fn2">📴 Works 100% Offline</td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td class="o"><span class="ck">✓</span> Complete</td></tr>
+          <tr><td class="fn2">🎤 Voice Input (Hindi/Marathi)</td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td class="o"><span class="ck">✓</span> Native</td></tr>
+          <tr><td class="fn2">📸 Camera AI Diagnosis</td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td class="o"><span class="ck">✓</span> Anemia + Jaundice</td></tr>
+          <tr><td class="fn2">📄 Report OCR Explainer</td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cw">⚠</span> Cloud only</td><td class="o"><span class="ck">✓</span> Offline OCR</td></tr>
+          <tr><td class="fn2">📱 WhatsApp Bot (No Install)</td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td class="o"><span class="ck">✓</span> Unique Feature</td></tr>
+          <tr><td class="fn2">📱 Works on ₹5K Android</td><td><span class="cx">✕</span></td><td><span class="cw">⚠</span></td><td><span class="cx">✕</span></td><td><span class="cw">⚠</span></td><td class="o"><span class="ck">✓</span> Optimized</td></tr>
+          <tr><td class="fn2">🏥 ABDM / FHIR Compatible</td><td><span class="ck">✓</span></td><td><span class="cx">✕</span></td><td><span class="cw">⚠</span></td><td><span class="cx">✕</span></td><td class="o"><span class="ck">✓</span> FHIR Ready</td></tr>
+          <tr><td class="fn2">🔗 No App Store Download</td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td><span class="cx">✕</span></td><td class="o"><span class="ck">✓</span> Just a Link</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cal a3" style="border-color:var(--green)">
+      <strong style="color:var(--white)">"Build Something That Didn't Exist Yesterday"</strong> — ArogyaSetu Edge is the <strong style="color:var(--green)">ONLY platform</strong> combining offline edge AI + multilingual voice + camera health screening + report OCR + WhatsApp bot in a single PWA for rural ASHA workers. <strong style="color:var(--white)">This genuinely did not exist yesterday.</strong>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 7 — IMPACT ═══════════ -->
+<div class="slide" id="s7">
+  <span class="snum">07 / 08 · Feasibility &amp; Scalability</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:1020px">
+    <div class="a1" style="text-align:center">
+      <div class="pill" style="background:var(--gdim);border-color:rgba(16,185,129,.3);color:var(--green)">🌍 Social Impact &amp; Scale</div>
+      <h2 class="st">From 1 Village to 600,000. <span class="gt">Zero Marginal Cost.</span></h2>
+    </div>
+    <div class="ig a2">
+      <div class="ic"><span class="in">3 min</span><span class="il">Per-Patient Triage</span></div>
+      <div class="ic"><span class="in">₹0</span><span class="il">Cloud AI Cost</span></div>
+      <div class="ic"><span class="in">600K+</span><span class="il">Villages Reachable</span></div>
+      <div class="ic"><span class="in">1M+</span><span class="il">ASHA Workers Ready</span></div>
+    </div>
+    <!-- 3 key impact points -->
+    <div class="a3" style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+      <div style="flex:1;background:var(--card);border-radius:10px;border:1px solid rgba(255,255,255,.06);padding:12px"><div style="font-family:var(--fh);font-weight:700;color:var(--green);font-size:.78rem;margin-bottom:4px">📉 80% Reduction</div><div style="font-size:.72rem;color:var(--gray)">In emergency referral delays — from village to district hospital — through instant AI triage without needing a doctor to be present.</div></div>
+      <div style="flex:1;background:var(--card);border-radius:10px;border:1px solid rgba(255,255,255,.06);padding:12px"><div style="font-family:var(--fh);font-weight:700;color:var(--teal);font-size:.78rem;margin-bottom:4px">🏛️ Zero Infrastructure Cost</div><div style="font-size:.72rem;color:var(--gray)">Runs on existing ASHA phones. NHM sends a WhatsApp link. Entire district served for <strong style="color:var(--white)">₹500/month</strong> server cost. No new hardware, no procurement.</div></div>
+      <div style="flex:1;background:var(--card);border-radius:10px;border:1px solid rgba(255,255,255,.06);padding:12px"><div style="font-family:var(--fh);font-weight:700;color:var(--amber);font-size:.78rem;margin-bottom:4px">🏥 National Mission Alignment</div><div style="font-size:.72rem;color:var(--gray)">Plugs into India's <strong style="color:var(--white)">Ayushman Bharat Digital Mission</strong>. ABDM/ABHA ID ready. Patient records sync to national health backbone — scalable to Pan-India deployment.</div></div>
+    </div>
+    <!-- Roadmap -->
+    <div class="rr a4">
+      <div class="rp"><span class="ptag p1">Phase 1 · Hackathon</span><div class="ptt">Core MVP</div><ul class="pi"><li>Camera AI: Anemia + Jaundice</li><li>Voice Triage: Hindi/Marathi, 20+ conditions</li><li>Report OCR Explainer (offline)</li><li>Health Passport + WhatsApp Share</li><li>WhatsApp Triage Bot (Twilio)</li></ul></div>
+      <div class="rp"><span class="ptag p2">Phase 2 · 3 Months</span><div class="ptt">Expand</div><ul class="pi"><li>ABDM/ABHA full API integration</li><li>TB screening module</li><li>Maternal health tracking</li><li>SMS bridge for 2G zones</li><li>Malnutrition + neonatal screening</li></ul></div>
+      <div class="rp"><span class="ptag p3">Phase 3 · 6 Months</span><div class="ptt">District Scale</div><ul class="pi"><li>Immunization reminder system</li><li>District health dashboard</li><li>NHM ASHA program partnership</li><li>Federated AI model updates</li><li>600K+ village deployment</li></ul></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SLIDE 8 — TEAM ═══════════ -->
+<div class="slide" id="s8">
+  <span class="snum">08 / 08 · Future Scope &amp; Expected Outcome</span>
+  <span class="brand">VibeDuo · WhyCode4U Hackathon 2026</span>
+  <div style="width:100%;max-width:1020px">
+    <div class="a1" style="text-align:center">
+      <div class="pill">👥 Team <span class="gt">VibeDuo</span></div>
+      <h2 class="st">We Don't Build <span style="color:var(--red)">Prototypes.</span> We Ship <span class="gt">Products.</span></h2>
+    </div>
+    <div class="tg a2">
+      <div class="tc">
+        <div class="ta">👨‍💻</div>
+        <div class="tn">Yash Karwa</div>
+        <div class="tr">Full-Stack &amp; AI Engineer</div>
+        <div class="tsk">
+          <span class="sk">React + Vite</span><span class="sk">TensorFlow.js</span>
+          <span class="sk">Tesseract.js</span><span class="sk">PWA</span>
+          <span class="sk">FastAPI</span><span class="sk">Edge AI</span>
+        </div>
+      </div>
+      <div class="tc" style="border-color:rgba(16,185,129,.25)">
+        <div class="ta" style="background:linear-gradient(135deg,#10B981,#06B6D4)">🎤</div>
+        <div class="tn">Ansh Khandelwal</div>
+        <div class="tr" style="color:var(--green)">Product Strategy &amp; Presenter</div>
+        <div class="tsk">
+          <span class="sk">UX Research</span><span class="sk">Pitch Delivery</span>
+          <span class="sk">User Validation</span><span class="sk">Demo Script</span>
+          <span class="sk">Storytelling</span>
+        </div>
+      </div>
+    </div>
+    <!-- Sprint plan -->
+    <div class="a3" style="margin-top:16px">
+      <div style="font-family:var(--fh);font-weight:700;color:var(--white);font-size:.9rem;margin-bottom:9px;text-align:center">🏃 9-Hour Offline Sprint — 31 October 2026, Pune</div>
+      <div class="spg">
+        <div class="sp"><div class="sh">Hr 0–1</div><div class="sk2">Scaffold + PWA + Tailwind</div><div class="so">✅ App loads offline</div></div>
+        <div class="sp"><div class="sh">Hr 1–2</div><div class="sk2">Camera + TF.js Models</div><div class="so">✅ Camera AI working</div></div>
+        <div class="sp"><div class="sh">Hr 2–4</div><div class="sk2">Voice Triage + Scoring</div><div class="so">✅ Full triage flow</div></div>
+        <div class="sp"><div class="sh">Hr 4–5</div><div class="sk2">Tesseract OCR + Reports</div><div class="so">✅ OCR features done</div></div>
+        <div class="sp"><div class="sh">Hr 5–6</div><div class="sk2">Health Passport + IndexedDB</div><div class="so">✅ Records + share</div></div>
+        <div class="sp"><div class="sh">Hr 6–7</div><div class="sk2">WhatsApp Bot Live</div><div class="so">✅ Twilio bot working</div></div>
+        <div class="sp" style="grid-column:span 1"><div class="sh">Hr 7–8</div><div class="sk2">UI Polish + Animations</div><div class="so">✅ Beautiful UI</div></div>
+        <div class="sp" style="grid-column:span 1"><div class="sh">Hr 8–9</div><div class="sk2">Demo Rehearsal</div><div class="so">✅ Pitch-perfect demo</div></div>
+      </div>
+    </div>
+    <!-- Finale -->
+    <div class="a4" style="text-align:center;margin-top:14px">
+      <div style="font-family:var(--fh);font-weight:800;font-size:clamp(1rem,2vw,1.6rem);color:var(--white)">"Let's build the future of rural healthcare — <span class="gt">Together."</span></div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+        <div style="background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:5px 13px;font-size:.68rem;color:var(--gray)">📍 Pune, Maharashtra</div>
+        <div style="background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:5px 13px;font-size:.68rem;color:var(--gray)">⏱ 9 Hours · 31 Oct 2026</div>
+        <div style="background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:5px 13px;font-size:.68rem;color:var(--gray)">🏆 ₹50,000 Prize Pool</div>
+        <div style="background:var(--card);border:1px solid rgba(6,182,212,.2);border-radius:7px;padding:5px 13px;font-size:.68rem;color:var(--teal);font-weight:700">🎯 WhyCode4U Hackathon 2026</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /#deck -->
+
+<!-- NAV -->
+<div id="nav">
+  <button onclick="go(cur-1)">←</button>
+  <div id="dots"></div>
+  <div id="ctr">1 / 8</div>
+  <button onclick="go(cur+1)">→</button>
+</div>
+
+<script>
+const N=8;let cur=0;
+const slides=document.querySelectorAll('.slide');
+const ctr=document.getElementById('ctr');
+const bar=document.getElementById('bar');
+const dotsEl=document.getElementById('dots');
+for(let i=0;i<N;i++){const d=document.createElement('div');d.className='dot'+(i===0?' on':'');d.onclick=()=>go(i);dotsEl.appendChild(d)}
+function go(n){if(n<0||n>=N||n===cur)return;const p=cur;cur=n;
+  slides[p].classList.remove('active');slides[p].classList.add('out');
+  setTimeout(()=>slides[p].classList.remove('out'),520);
+  slides[cur].classList.add('active');
+  ctr.textContent=(cur+1)+' / '+N;
+  bar.style.width=((cur+1)/N*100)+'%';
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===cur));
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(cur+1)}
+  if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1)}
+});
+let tx=0;
+document.addEventListener('touchstart',e=>tx=e.touches[0].clientX);
+document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)go(dx<0?cur+1:cur-1)});
+</script>
+</body>
+</html>

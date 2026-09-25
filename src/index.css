@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #050505;
+  color: #FAFAFA;
+  overflow-x: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Carbon Black Cards */
+.carbon-card {
+  background-color: #121212;
+  border: 1px solid #242424;
+  border-radius: 0.875rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.carbon-card:hover {
+  background-color: #181818;
+  border-color: #383838;
+}
+
+.carbon-card-accent {
+  background-color: #121212;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 0.875rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.carbon-card-accent:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  background-color: #161a18;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
