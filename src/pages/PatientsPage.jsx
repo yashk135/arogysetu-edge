@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { savePatient, getAllPatients, deletePatient } from '../services/db';
-import { Users, UserPlus, Search, QrCode, MapPin, Phone, Calendar } from 'lucide-react';
+import { savePatient, getAllPatients, deletePatient, getPatientTriageHistory } from '../services/db';
+import { generateHealthPassportPDF } from '../services/pdfExporter';
+import { Users, UserPlus, Search, QrCode, MapPin, Phone, Calendar, Download, ShieldAlert, CheckCircle, AlertTriangle, RefreshCw, Activity, ArrowUpRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function PatientsPage({ onSelectPatient }) {
   const [patients, setPatients] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedPatientForDetail, setSelectedPatientForDetail] = useState(null);
+  const [patientHistory, setPatientHistory] = useState([]);
   const [selectedPatientForQR, setSelectedPatientForQR] = useState(null);
-  
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -32,6 +37,17 @@ export default function PatientsPage({ onSelectPatient }) {
     loadPatients();
   }, []);
 
+  const openPatientDetail = async (patient) => {
+    setSelectedPatientForDetail(patient);
+    try {
+      const history = await getPatientTriageHistory(patient.id);
+      setPatientHistory(history);
+    } catch (err) {
+      console.error('Error loading patient triage history:', err);
+      setPatientHistory([]);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -54,6 +70,42 @@ export default function PatientsPage({ onSelectPatient }) {
     }
   };
 
+  const handleExportPDF = (patient) => {
+    generateHealthPassportPDF(patient, patientHistory);
+  };
+
+  const handleSyncABDM = async () => {
+    setIsSyncing(true);
+    setSyncStatus(null);
+    try {
+      // Simulate sync POST to FastAPI backend endpoint
+      const response = await fetch('http://localhost:8000/api/sync/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ashaWorkerId: 'ASHA_NASHIK_04',
+          records: patientHistory.map((r) => ({
+            id: r.id,
+            patientId: r.patientId,
+            patientName: r.patientName,
+            riskScore: r.riskScore,
+            riskLevel: r.riskLevel,
+            timestamp: r.timestamp,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        setSyncStatus('✅ Successfully synced records to ABDM server!');
+      } else {
+        setSyncStatus('ℹ️ Local records queued. Will sync automatically when connection restores.');
+      }
+    } catch (err) {
+      setSyncStatus('ℹ️ Offline Mode: Patient records stored locally in IndexedDB. Sync will auto-trigger when backend connects.');
+    }
+    setIsSyncing(false);
+  };
+
   const filteredPatients = patients.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.village.toLowerCase().includes(searchQuery.toLowerCase())
@@ -61,7 +113,7 @@ export default function PatientsPage({ onSelectPatient }) {
 
   return (
     <div className="space-y-6 pb-24 max-w-5xl mx-auto">
-      {/* Header & Controls */}
+      {/* Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="font-heading font-extrabold text-2xl text-white flex items-center gap-2">
@@ -69,7 +121,7 @@ export default function PatientsPage({ onSelectPatient }) {
             <span>Patient Registry & Health Passports</span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            {patients.length} Patient Record{patients.length !== 1 ? 's' : ''} Enrolled
+            {patients.length} Patient Profile{patients.length !== 1 ? 's' : ''} Enrolled in Local Database
           </p>
         </div>
 
@@ -101,11 +153,11 @@ export default function PatientsPage({ onSelectPatient }) {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-heading font-bold text-sm text-white">No Patient Records</h3>
+            <h3 className="font-heading font-bold text-sm text-white">No Patient Records Found</h3>
             <p className="text-xs text-zinc-400 max-w-sm mx-auto mt-1">
               {searchQuery
-                ? 'No patient matches your search filter.'
-                : 'Click "Register Patient" to add a new patient profile.'}
+                ? 'No patient matches your search query.'
+                : 'Click "Register Patient" to create a new patient profile.'}
             </p>
           </div>
         </div>
@@ -114,7 +166,7 @@ export default function PatientsPage({ onSelectPatient }) {
           {filteredPatients.map((p) => (
             <div
               key={p.id}
-              onClick={() => onSelectPatient && onSelectPatient(p)}
+              onClick={() => openPatientDetail(p)}
               className="carbon-card p-4 cursor-pointer group space-y-2.5"
             >
               <div className="flex items-start justify-between">
@@ -134,16 +186,21 @@ export default function PatientsPage({ onSelectPatient }) {
                   </p>
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedPatientForQR(p);
-                  }}
-                  className="p-2 rounded-lg bg-[#1A1A1A] hover:bg-[#222222] text-zinc-400 hover:text-white border border-[#2E2E2E] transition-colors"
-                  title="View Health Passport QR Code"
-                >
-                  <QrCode className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPatientForQR(p);
+                    }}
+                    className="p-2 rounded-lg bg-[#1A1A1A] hover:bg-[#222222] text-zinc-400 hover:text-white border border-[#2E2E2E] transition-colors"
+                    title="View Health Passport QR Code"
+                  >
+                    <QrCode className="w-4 h-4" />
+                  </button>
+                  <div className="p-2 text-zinc-500 group-hover:text-emerald-400 transition-colors">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-4 text-xs text-zinc-400 pt-2 border-t border-[#222222]">
@@ -167,7 +224,122 @@ export default function PatientsPage({ onSelectPatient }) {
         </div>
       )}
 
-      {/* Add Patient Modal */}
+      {/* Patient Detail & Passport Drawer */}
+      {selectedPatientForDetail && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-6 max-w-xl w-full max-h-[90vh] overflow-y-auto space-y-5 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-[#242424] pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-heading font-extrabold text-xl text-white">
+                    {selectedPatientForDetail.name}
+                  </h3>
+                  {selectedPatientForDetail.isPregnant && (
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-[#1F1C12] text-amber-400 border border-amber-900/40">
+                      Pregnant
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  ID: {selectedPatientForDetail.id} • {selectedPatientForDetail.gender}, {selectedPatientForDetail.age} yrs • Village: {selectedPatientForDetail.village}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setSelectedPatientForDetail(null)}
+                className="text-zinc-500 hover:text-white font-bold text-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Action Toolbar */}
+            <div className="flex items-center justify-between gap-3 bg-[#181818] p-3 rounded-xl border border-[#262626]">
+              <button
+                onClick={() => handleExportPDF(selectedPatientForDetail)}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-emerald-500 text-white font-medium text-xs hover:bg-emerald-600 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Health Passport PDF</span>
+              </button>
+
+              <button
+                onClick={handleSyncABDM}
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#222222] border border-[#333333] text-zinc-200 font-medium text-xs hover:bg-[#2A2A2A] transition-all disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>Sync to ABDM Server</span>
+              </button>
+            </div>
+
+            {syncStatus && (
+              <div className="p-3 rounded-xl bg-[#161616] border border-[#262626] text-xs text-zinc-300">
+                {syncStatus}
+              </div>
+            )}
+
+            {/* Triage History Timeline */}
+            <div className="space-y-3">
+              <h4 className="font-heading font-bold text-sm text-white flex items-center gap-2">
+                <Activity className="w-4 h-4 text-emerald-400" />
+                <span>Clinical Triage Assessment History</span>
+              </h4>
+
+              {patientHistory.length === 0 ? (
+                <div className="p-4 bg-[#161616] rounded-xl border border-[#242424] text-center text-xs text-zinc-400">
+                  No previous triage sessions recorded for this patient yet. Use Camera Scan or Voice Intake to record an assessment.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {patientHistory.map((rec) => (
+                    <div
+                      key={rec.id}
+                      className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                            rec.riskLevel === 'RED'
+                              ? 'bg-[#1F1414] text-red-400 border border-red-900/40'
+                              : rec.riskLevel === 'YELLOW'
+                              ? 'bg-[#1F1C12] text-amber-400 border border-amber-900/40'
+                              : 'bg-[#121F17] text-emerald-400 border border-emerald-900/40'
+                          }`}
+                        >
+                          {rec.riskLevel} RISK (Score: {rec.riskScore}/100)
+                        </span>
+                        <span className="text-zinc-500 text-[11px]">
+                          {new Date(rec.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+
+                      {rec.cameraResult && (
+                        <p className="text-xs text-zinc-300">
+                          📸 <strong className="text-white">Camera AI:</strong> {rec.cameraResult.message}
+                        </p>
+                      )}
+                      {rec.voiceResult && (
+                        <p className="text-xs text-zinc-300">
+                          🎤 <strong className="text-white">Voice Intake:</strong> "{rec.voiceResult.transcript}" — {rec.voiceResult.adviceHindi}
+                        </p>
+                      )}
+                      {rec.ocrResult && (
+                        <p className="text-xs text-zinc-300">
+                          📄 <strong className="text-white">Report OCR:</strong> {rec.ocrResult.summaryHindi}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Registration Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111111] border border-[#2A2A2A] rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">

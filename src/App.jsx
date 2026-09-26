@@ -12,7 +12,7 @@ export default function App() {
   const [selectedPatient, setSelectedPatient] = useState(null);
 
   return (
-    <div className="min-h-screen bg-[#0A0F1E] text-white flex flex-col">
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col">
       {/* Top Header */}
       <Header />
 

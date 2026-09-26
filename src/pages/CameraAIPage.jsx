@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeAnemia, analyzeJaundice } from '../services/cameraAI';
+import { saveTriageRecord } from '../services/db';
 import { Camera, ShieldAlert, AlertTriangle, CheckCircle, Eye, Hand, Activity } from 'lucide-react';
 
 export default function CameraAIPage({ onSaveResult }) {
