@@ -1,5 +1,20 @@
 import jsPDF from 'jspdf';
 
+function sanitizePDFText(text) {
+
+  if (!text) return '';
+  const hasNonAscii = /[^\x00-\x7F]/.test(text);
+  if (hasNonAscii) {
+    let clean = text.replace(/[\u0900-\u097F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F\u0A80-\u0AFF\u0A00-\u0A7F\u0600-\u06FF]/g, '').trim();
+    clean = clean.replace(/[^\w\s\.,\(\)\-:\/]/g, '').replace(/\s+/g, ' ').trim();
+    if (!clean || clean.length < 4) {
+      return 'Clinical triage assessment record (Medical Officer review).';
+    }
+    return clean;
+  }
+  return text;
+}
+
 /**
  * Generates and downloads a clean Health Passport PDF Referral Document
  */
@@ -45,13 +60,13 @@ export function generateHealthPassportPDF(patient, triageHistory = []) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
   doc.setTextColor(20, 20, 20);
-  doc.text(patient.name || 'Anonymous Patient', 20, y + 10);
+  doc.text(sanitizePDFText(patient.name) || 'Anonymous Patient', 20, y + 10);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(80, 80, 80);
   doc.text(`Age: ${patient.age} yrs  |  Gender: ${patient.gender}  |  Pregnancy Status: ${patient.isPregnant ? 'Yes (Pregnant)' : 'No'}`, 20, y + 18);
-  doc.text(`Village / District: ${patient.village || 'N/A'}  |  Patient ID: ${patient.id}`, 20, y + 25);
+  doc.text(`Village / District: ${sanitizePDFText(patient.village) || 'N/A'}  |  Patient ID: ${patient.id}`, 20, y + 25);
 
   y += 42;
 
@@ -82,36 +97,48 @@ export function generateHealthPassportPDF(patient, triageHistory = []) {
 
   y += 22;
 
-  // Key Clinical Findings Section
+  // Key Clinical Case History (Doctor Summary Format - ENGLISH ONLY)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(30, 30, 30);
-  doc.text('Key Screening Findings & Recommendations:', 15, y);
+  doc.text('Doctor Clinical Case History & Triage Summaries (English):', 15, y);
 
   y += 6;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(9);
+  doc.setTextColor(50, 50, 50);
 
-  if (latestRecord) {
-    if (latestRecord.cameraResult) {
-      doc.text(`• Visual Scan (${latestRecord.cameraResult.type}): ${latestRecord.cameraResult.message}`, 20, y);
-      y += 6;
-    }
-    if (latestRecord.voiceResult) {
-      doc.text(`• Voice Symptom Intake: "${latestRecord.voiceResult.transcript}"`, 20, y);
-      y += 6;
-      doc.text(`  Advice: ${latestRecord.voiceResult.adviceHindi}`, 20, y);
-      y += 6;
-    }
-    if (latestRecord.ocrResult) {
-      doc.text(`• Lab Report Summary: ${latestRecord.ocrResult.summaryHindi}`, 20, y);
-      y += 6;
-    }
+  if (triageHistory && triageHistory.length > 0) {
+    triageHistory.slice(0, 4).forEach((rec, idx) => {
+      const recDate = new Date(rec.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const modName = rec.sourceModule === 'CAMERA' ? 'Visual Scan' : rec.sourceModule === 'VOICE' ? 'Voice Triage' : 'Report OCR';
+      const category = sanitizePDFText(rec.doctorSummary?.englishDiseaseCategory || rec.diseaseCategory || rec.doctorSummary?.diseaseCategory || 'Clinical Consultation');
+      const complaint = sanitizePDFText(rec.doctorSummary?.englishChiefComplaint || rec.chiefComplaint || rec.doctorSummary?.chiefComplaint || 'General checkup');
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Case ${idx + 1} [${recDate}] — ${modName} | Risk: ${rec.riskLevel} (${rec.riskScore}/100)`, 20, y);
+      y += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.text(`• Diagnosis Category: ${category} | Chief Complaint: "${complaint}"`, 22, y);
+      y += 5;
+
+      const bullets = rec.doctorSummary?.englishSummaryPoints || rec.doctorSummary?.summaryPoints || rec.cameraResult?.summaryBulletPoints || rec.ocrResult?.summaryBulletPoints || rec.voiceResult?.summaryBulletPoints || [];
+      bullets.slice(0, 4).forEach((b) => {
+        const cleanB = sanitizePDFText(b);
+        const truncatedB = cleanB.length > 85 ? cleanB.substring(0, 85) + '...' : cleanB;
+        doc.text(`  - ${truncatedB}`, 24, y);
+        y += 5;
+      });
+
+      y += 2;
+    });
   } else {
-    doc.text('• Patient enrolled in registry. Initial visual & voice triage recommended.', 20, y);
+    doc.text('• Patient enrolled in registry. No past clinical triage sessions recorded.', 20, y);
     y += 6;
   }
+
+
 
   y += 15;
 

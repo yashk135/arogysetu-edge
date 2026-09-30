@@ -65,11 +65,16 @@ export async function saveTriageRecord(recordData) {
     id: `TRIAGE_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     patientId: recordData.patientId,
     patientName: recordData.patientName || 'Unknown',
-    cameraResult: recordData.cameraResult || null, // { anemiaProb, jaundiceProb, severity }
-    voiceResult: recordData.voiceResult || null,   // { transcript, symptoms, severity }
-    ocrResult: recordData.ocrResult || null,       // { rawText, values, summary }
-    riskScore: recordData.riskScore || 0,         // 0 - 100
-    riskLevel: recordData.riskLevel || 'GREEN',   // 'GREEN', 'YELLOW', 'RED'
+    sourceModule: recordData.sourceModule || 'TRIAGE',
+    cameraResult: recordData.cameraResult || null,
+    voiceResult: recordData.voiceResult || null,
+    ocrResult: recordData.ocrResult || null,
+    riskScore: recordData.riskScore || 0,
+    riskLevel: recordData.riskLevel || 'GREEN',
+    diseaseCategory: recordData.diseaseCategory || 'General Checkup',
+    chiefComplaint: recordData.chiefComplaint || '',
+    doctorSummary: recordData.doctorSummary || null, // Doctor-style clinical summary object
+    chatHistory: recordData.chatHistory || [],       // Q&A doubt continuation history
     recommendations: recordData.recommendations || [],
     synced: false,
     timestamp: new Date().toISOString(),
@@ -78,6 +83,7 @@ export async function saveTriageRecord(recordData) {
   await db.put('triage_records', record);
   return record;
 }
+
 
 // Fetch triage history for a specific patient
 export async function getPatientTriageHistory(patientId) {

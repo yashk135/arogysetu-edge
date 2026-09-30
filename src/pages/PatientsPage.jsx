@@ -37,6 +37,18 @@ export default function PatientsPage({ onSelectPatient }) {
     loadPatients();
   }, []);
 
+  const [patientQRHistory, setPatientQRHistory] = useState([]);
+
+  const openPatientQRModal = async (patient) => {
+    setSelectedPatientForQR(patient);
+    try {
+      const history = await getPatientTriageHistory(patient.id);
+      setPatientQRHistory(history);
+    } catch (err) {
+      setPatientQRHistory([]);
+    }
+  };
+
   const openPatientDetail = async (patient) => {
     setSelectedPatientForDetail(patient);
     try {
@@ -47,6 +59,7 @@ export default function PatientsPage({ onSelectPatient }) {
       setPatientHistory([]);
     }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -190,11 +203,12 @@ export default function PatientsPage({ onSelectPatient }) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedPatientForQR(p);
+                      openPatientQRModal(p);
                     }}
                     className="p-2 rounded-lg bg-[#1A1A1A] hover:bg-[#222222] text-zinc-400 hover:text-white border border-[#2E2E2E] transition-colors"
                     title="View Health Passport QR Code"
                   >
+
                     <QrCode className="w-4 h-4" />
                   </button>
                   <div className="p-2 text-zinc-500 group-hover:text-emerald-400 transition-colors">
@@ -292,13 +306,22 @@ export default function PatientsPage({ onSelectPatient }) {
                   No previous triage sessions recorded for this patient yet. Use Camera Scan or Voice Intake to record an assessment.
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {patientHistory.map((rec) => (
                     <div
                       key={rec.id}
-                      className="p-3.5 rounded-xl bg-[#161616] border border-[#262626] space-y-2"
+                      className="p-4 rounded-xl bg-[#161616] border border-[#262626] space-y-2.5"
                     >
                       <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-400 font-medium">
+                            {rec.sourceModule === 'CAMERA' ? '📸 Camera Scan' : rec.sourceModule === 'VOICE' ? '🎤 Voice Intake' : '📄 Report OCR'}
+                          </span>
+                          <span className="text-zinc-500 text-[10px]">
+                            • {new Date(rec.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+
                         <span
                           className={`font-bold px-2 py-0.5 rounded text-[10px] ${
                             rec.riskLevel === 'RED'
@@ -308,31 +331,52 @@ export default function PatientsPage({ onSelectPatient }) {
                               : 'bg-[#121F17] text-emerald-400 border border-emerald-900/40'
                           }`}
                         >
-                          {rec.riskLevel} RISK (Score: {rec.riskScore}/100)
-                        </span>
-                        <span className="text-zinc-500 text-[11px]">
-                          {new Date(rec.timestamp).toLocaleString()}
+                          {rec.riskLevel} RISK ({rec.riskScore}/100)
                         </span>
                       </div>
 
-                      {rec.cameraResult && (
-                        <p className="text-xs text-zinc-300">
-                          📸 <strong className="text-white">Camera AI:</strong> {rec.cameraResult.message}
+                      {/* Condition & Chief Complaint */}
+                      <div className="bg-[#1C1C1C] p-2.5 rounded-lg border border-[#2A2A2A]">
+                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
+                          Diagnosis Category: {rec.diseaseCategory || rec.doctorSummary?.diseaseCategory || 'Clinical Consultation'}
+                        </span>
+                        <p className="text-xs text-zinc-300 mt-0.5">
+                          <strong>Chief Complaint / Notes:</strong> {rec.chiefComplaint || rec.doctorSummary?.chiefComplaint || 'General checkup'}
                         </p>
+                      </div>
+
+                      {/* Doctor Summary Bullets */}
+                      {(rec.doctorSummary?.summaryPoints || rec.cameraResult?.summaryBulletPoints || rec.ocrResult?.summaryBulletPoints || rec.voiceResult?.summaryBulletPoints) && (
+                        <div className="space-y-1 text-xs text-zinc-300">
+                          <strong className="text-zinc-400 text-[11px] block">Doctor Clinical Summary:</strong>
+                          <ul className="space-y-1 pl-1">
+                            {(rec.doctorSummary?.summaryPoints || rec.cameraResult?.summaryBulletPoints || rec.ocrResult?.summaryBulletPoints || rec.voiceResult?.summaryBulletPoints || []).map((pt, i) => (
+                              <li key={i} className="flex items-start gap-1.5 text-zinc-300">
+                                <span className="text-emerald-400 font-bold">•</span>
+                                <span>{pt}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
-                      {rec.voiceResult && (
-                        <p className="text-xs text-zinc-300">
-                          🎤 <strong className="text-white">Voice Intake:</strong> "{rec.voiceResult.transcript}" — {rec.voiceResult.adviceHindi}
-                        </p>
-                      )}
-                      {rec.ocrResult && (
-                        <p className="text-xs text-zinc-300">
-                          📄 <strong className="text-white">Report OCR:</strong> {rec.ocrResult.summaryHindi}
-                        </p>
+
+                      {/* Q&A Doubt Highlights */}
+                      {rec.chatHistory && rec.chatHistory.length > 0 && (
+                        <div className="pt-2 border-t border-[#222222] text-[11px] text-zinc-400 space-y-1">
+                          <strong className="text-emerald-400 font-medium block">Patient Doubts & Clarifications:</strong>
+                          {rec.chatHistory.map((q, qi) => (
+                            <div key={qi} className="bg-[#121212] p-2 rounded border border-[#242424]">
+                              <p className={q.role === 'user' ? 'text-emerald-300 font-medium' : 'text-zinc-300 mt-1'}>
+                                {q.role === 'user' ? `Q: ${q.text}` : `A: ${q.text}`}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                   ))}
                 </div>
+
               )}
             </div>
           </div>
@@ -472,12 +516,23 @@ export default function PatientsPage({ onSelectPatient }) {
                   id: selectedPatientForQR.id,
                   name: selectedPatientForQR.name,
                   age: selectedPatientForQR.age,
+                  gender: selectedPatientForQR.gender,
                   village: selectedPatientForQR.village,
                   isPregnant: selectedPatientForQR.isPregnant,
-                  platform: 'ArogyaSetu Edge',
+                  clinicalCaseHistory: patientQRHistory.map((h) => ({
+                    date: new Date(h.timestamp).toLocaleDateString('en-IN'),
+                    module: h.sourceModule,
+                    category: h.diseaseCategory || h.doctorSummary?.diseaseCategory || 'Consultation',
+                    complaint: h.chiefComplaint || 'General checkup',
+                    riskLevel: h.riskLevel,
+                    score: h.riskScore,
+                    summary: h.doctorSummary?.summaryPoints || h.cameraResult?.summaryBulletPoints || h.ocrResult?.summaryBulletPoints || [],
+                  })),
+                  platform: 'ArogyaSetu Edge AI',
                 })}
                 size={170}
               />
+
             </div>
 
             <div>
