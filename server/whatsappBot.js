@@ -24,8 +24,34 @@ app.use(express.json());
 const { MessagingResponse } = twilio.twiml;
 
 /**
- * Health check endpoint
+ * Health check & Browser info endpoints
  */
+const getHtmlStatusPage = () => `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ArogyaSetu Edge — WhatsApp Webhook Service</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; line-height: 1.6; }
+    .card { max-width: 600px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .badge { background: #10b981; color: #042f2e; font-weight: 700; padding: 4px 12px; border-radius: 99px; font-size: 13px; display: inline-block; margin-bottom: 16px; }
+    h1 { font-size: 24px; color: #38bdf8; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 14px; }
+    .endpoint { background: #0f172a; padding: 12px; border-radius: 8px; font-family: monospace; color: #34d399; margin: 16px 0; font-size: 13px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">🟢 ACTIVE & ONLINE</span>
+    <h1>ArogyaSetu Edge WhatsApp Bot</h1>
+    <p>The Twilio WhatsApp Webhook service is running smoothly on Port 5000.</p>
+    <div class="endpoint">POST /whatsapp/webhook</div>
+    <p style="font-size: 13px;">To connect with Twilio Sandbox or live number, set your webhook URL in Twilio Console to your public ngrok/server URL.</p>
+  </div>
+</body>
+</html>
+`;
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'online',
@@ -33,6 +59,14 @@ app.get('/health', (req, res) => {
     version: '1.0.0',
     timestamp: new Date().toISOString()
   });
+});
+
+app.get('/', (req, res) => {
+  res.send(getHtmlStatusPage());
+});
+
+app.get('/whatsapp/webhook', (req, res) => {
+  res.send(getHtmlStatusPage());
 });
 
 /**

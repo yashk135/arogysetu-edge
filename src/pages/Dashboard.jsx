@@ -1,7 +1,15 @@
-import React from 'react';
-import { Camera, Mic, FileText, Users, Smartphone, Activity } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, Mic, FileText, Users, Smartphone, Activity, ExternalLink, X, MessageSquare, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function Dashboard({ setActiveTab }) {
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+
+  // Twilio WhatsApp sandbox or direct wa.me link
+  const whatsappNumber = '14155238886'; // Twilio Sandbox default
+  const whatsappText = 'join arogya-setu';
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`;
+
   return (
     <div className="space-y-6 pb-24 max-w-5xl mx-auto">
       {/* Hero Banner — Carbon Black Enterprise SaaS Style */}
@@ -133,22 +141,102 @@ export default function Dashboard({ setActiveTab }) {
         </div>
       </div>
 
-      {/* WhatsApp Integration Banner */}
-      <div className="rounded-xl bg-[#111111] border border-[#262626] p-4 sm:p-5 flex items-center justify-between gap-4">
+      {/* WhatsApp Integration Banner — Clickable with Modal Popup */}
+      <div 
+        onClick={() => setShowWhatsAppModal(true)}
+        className="rounded-xl bg-[#111111] border border-[#262626] hover:border-emerald-500/50 p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer group transition-all"
+      >
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-[#1A1A1A] border border-[#333333] flex items-center justify-center text-emerald-400 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[#1A1A1A] border border-[#333333] flex items-center justify-center text-emerald-400 shrink-0 group-hover:bg-emerald-500/10 transition-colors">
             <Smartphone className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-heading font-bold text-sm text-white">
-              WhatsApp Direct Triage Assistant
-            </h4>
-            <p className="text-xs text-zinc-400">
+            <div className="flex items-center gap-2">
+              <h4 className="font-heading font-bold text-sm text-white group-hover:text-emerald-400 transition-colors">
+                WhatsApp Direct Triage Assistant
+              </h4>
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                💬 Open Chat
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-0.5">
               Patients and health workers can send a photo or voice note on WhatsApp for automated triage recommendations without installing any application.
             </p>
           </div>
         </div>
+        <ExternalLink className="w-4 h-4 text-zinc-500 group-hover:text-emerald-400 shrink-0 transition-colors" />
       </div>
+
+      {/* WhatsApp Modal */}
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-2xl bg-[#141414] border border-[#2A2A2A] p-6 text-white shadow-2xl space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#262626] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-base text-white">WhatsApp Triage Assistant</h3>
+                  <p className="text-[11px] text-zinc-400">Omnichannel AI Assistance for Frontline Care</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowWhatsAppModal(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-[#222222] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* QR Code Section */}
+            <div className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 text-center space-y-3">
+              <div className="p-3 bg-white rounded-xl shadow-inner">
+                <QRCodeSVG value={whatsappUrl} size={150} />
+              </div>
+              <p className="text-xs text-zinc-400">
+                Scan with your phone camera to start a WhatsApp chat instantly!
+              </p>
+            </div>
+
+            {/* Feature Bullet Points */}
+            <div className="space-y-2 text-xs text-zinc-300">
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">📸</span>
+                <span><strong>Photo Diagnosis</strong>: Send a photo of skin rash or wound for visual triage.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">🎤</span>
+                <span><strong>Voice Triage</strong>: Record voice messages in Hindi or Marathi.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 font-bold">📄</span>
+                <span><strong>Lab Report OCR</strong>: Send lab report photos for simple explanations.</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-heading font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-500/20"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Launch WhatsApp Chat</span>
+              </a>
+              <button
+                onClick={() => setShowWhatsAppModal(false)}
+                className="py-2.5 px-4 rounded-xl bg-[#222222] hover:bg-[#2A2A2A] text-zinc-300 font-medium text-xs border border-[#333333] transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
