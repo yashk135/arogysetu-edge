@@ -102,33 +102,11 @@ export default function PassportSaveAndChat({
     setIsAsking(false);
   };
 
-  const handleCreatePatient = async (e) => {
-    e.preventDefault();
-    if (!newPatient.name.trim()) return;
-
-    try {
-      const created = await savePatient(newPatient);
-      await loadPatients();
-      setSelectedPatientId(created.id);
-      setShowQuickRegister(false);
-      setNewPatient({ name: '', age: '', gender: 'Female', isPregnant: false, village: '', phone: '' });
-    } catch (err) {
-      console.error('Failed to create quick patient:', err);
-    }
-  };
-
-  const handleSaveToPassport = async () => {
-    if (!selectedPatientId) {
-      setShowQuickRegister(true);
-      return;
-    }
-
+  const saveRecordForPatient = async (targetPatientId, targetPatientName) => {
     setIsSaving(true);
     setSaveStatus(null);
 
     try {
-      const patient = patientsList.find((p) => p.id === selectedPatientId);
-
       let englishSummaryPoints = summaryBullets;
       let englishChiefComplaint = chiefComplaint || initialContextText || 'General symptom consultation';
       let englishDiseaseCategory = diseaseCategory || 'General Assessment';
@@ -172,10 +150,9 @@ export default function PassportSaveAndChat({
         date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
       };
 
-
       await saveTriageRecord({
-        patientId: selectedPatientId,
-        patientName: patient ? patient.name : 'Registered Patient',
+        patientId: targetPatientId,
+        patientName: targetPatientName || 'Registered Patient',
         sourceModule,
         riskScore,
         riskLevel,
@@ -188,12 +165,41 @@ export default function PassportSaveAndChat({
         ocrResult: sourceModule === 'REPORT' ? resultData : null,
       });
 
-      setSaveStatus(`✅ Clinical summary saved to ${patient ? patient.name : 'Patient'}'s Health Passport!`);
+      setSaveStatus(`✅ Clinical summary & chat history saved to ${targetPatientName}'s Health Passport!`);
     } catch (err) {
       console.error('Error saving record to passport:', err);
       setSaveStatus('⚠️ Saved locally to Health Passport.');
     }
     setIsSaving(false);
+  };
+
+  const handleCreatePatient = async (e) => {
+    e.preventDefault();
+    if (!newPatient.name.trim()) return;
+
+    try {
+      const created = await savePatient(newPatient);
+      await loadPatients();
+      setSelectedPatientId(created.id);
+      setShowQuickRegister(false);
+
+      // Automatically save the current clinical triage session history to the newly created patient's passport!
+      await saveRecordForPatient(created.id, created.name);
+
+      setNewPatient({ name: '', age: '', gender: 'Female', isPregnant: false, village: '', phone: '' });
+    } catch (err) {
+      console.error('Failed to create quick patient:', err);
+    }
+  };
+
+  const handleSaveToPassport = async () => {
+    if (!selectedPatientId) {
+      setShowQuickRegister(true);
+      return;
+    }
+
+    const patient = patientsList.find((p) => p.id === selectedPatientId);
+    await saveRecordForPatient(selectedPatientId, patient ? patient.name : 'Patient');
   };
 
   return (
@@ -431,9 +437,10 @@ export default function PassportSaveAndChat({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded-xl bg-emerald-500 text-white font-medium text-xs hover:bg-emerald-600"
+                  disabled={isSaving}
+                  className="px-4 py-1.5 rounded-xl bg-emerald-500 text-white font-medium text-xs hover:bg-emerald-600 disabled:opacity-60 flex items-center gap-1.5"
                 >
-                  Create Profile & Select
+                  {isSaving ? 'Saving...' : '✅ Register & Save History'}
                 </button>
               </div>
             </form>
