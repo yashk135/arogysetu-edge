@@ -4,11 +4,19 @@ import { QRCodeSVG } from 'qrcode.react';
 
 export default function Dashboard({ setActiveTab }) {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [sandboxCode, setSandboxCode] = useState(() => {
+    return localStorage.getItem('arogyasetu_twilio_sandbox_code') || 'join <your-sandbox-keyword>';
+  });
 
-  // Twilio WhatsApp sandbox or direct wa.me link
+  const handleSandboxCodeChange = (e) => {
+    const val = e.target.value;
+    setSandboxCode(val);
+    localStorage.setItem('arogyasetu_twilio_sandbox_code', val);
+  };
+
+  // Twilio WhatsApp sandbox link
   const whatsappNumber = '14155238886'; // Twilio Sandbox default
-  const whatsappText = 'join arogya-setu';
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappText)}`;
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(sandboxCode)}`;
 
   return (
     <div className="space-y-6 pb-24 max-w-5xl mx-auto">
@@ -190,13 +198,30 @@ export default function Dashboard({ setActiveTab }) {
               </button>
             </div>
 
+            {/* Sandbox Keyword Input */}
+            <div className="space-y-1.5 bg-[#181818] border border-[#262626] p-3 rounded-xl">
+              <label className="block text-[11px] font-semibold text-zinc-400">
+                Your Twilio Sandbox Join Keyword:
+              </label>
+              <input
+                type="text"
+                value={sandboxCode}
+                onChange={handleSandboxCodeChange}
+                placeholder="join your-sandbox-name (e.g. join happy-lion)"
+                className="w-full bg-[#111111] border border-[#333333] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+              <p className="text-[10px] text-zinc-500">
+                Find your unique join keyword in Twilio Console ➔ Messaging ➔ Try it out ➔ Send WhatsApp.
+              </p>
+            </div>
+
             {/* QR Code Section */}
-            <div className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 text-center space-y-3">
-              <div className="p-3 bg-white rounded-xl shadow-inner">
-                <QRCodeSVG value={whatsappUrl} size={150} />
+            <div className="flex flex-col items-center justify-center bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-4 text-center space-y-2">
+              <div className="p-2.5 bg-white rounded-xl shadow-inner">
+                <QRCodeSVG value={whatsappUrl} size={130} />
               </div>
-              <p className="text-xs text-zinc-400">
-                Scan with your phone camera to start a WhatsApp chat instantly!
+              <p className="text-[11px] text-zinc-400">
+                Scan with mobile camera to launch WhatsApp with pre-filled join keyword!
               </p>
             </div>
 
