@@ -183,11 +183,11 @@ app.post('/whatsapp/webhook', async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Start Server on 0.0.0.0
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n======================================================`);
   console.log(`🚀 ArogyaSetu Edge WhatsApp Bot Server Online!`);
-  console.log(`📡 Listening on Port: ${PORT}`);
-  console.log(`🔗 Webhook Endpoint: http://localhost:${PORT}/whatsapp/webhook`);
+  console.log(`📡 Listening on: http://127.0.0.1:${PORT}`);
+  console.log(`🔗 Webhook Endpoint: http://127.0.0.1:${PORT}/whatsapp/webhook`);
   console.log(`======================================================\n`);
 });
