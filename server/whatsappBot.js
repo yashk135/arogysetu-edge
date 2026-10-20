@@ -23,42 +23,6 @@ app.use(express.json());
 
 const { MessagingResponse } = twilio.twiml;
 
-// Twilio REST client for sending messages asynchronously
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
-const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+17372508034';
-
-let twilioClient = null;
-if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
-  twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  console.log('[WhatsApp Bot] Twilio REST client initialized for async messaging.');
-} else {
-  console.warn('[WhatsApp Bot] TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing! Will use TwiML fallback.');
-}
-
-/**
- * Send a WhatsApp message using Twilio REST API (async, no timeout issues)
- */
-async function sendWhatsAppMessage(toNumber, messageBody) {
-  if (!twilioClient) {
-    console.error('[WhatsApp Bot] No Twilio client available to send message.');
-    return false;
-  }
-
-  try {
-    const msg = await twilioClient.messages.create({
-      from: TWILIO_WHATSAPP_FROM,
-      to: toNumber,
-      body: messageBody
-    });
-    console.log(`[WhatsApp Bot] Message sent successfully! SID: ${msg.sid}`);
-    return true;
-  } catch (err) {
-    console.error('[WhatsApp Bot] Failed to send message via Twilio REST API:', err.message);
-    return false;
-  }
-}
-
 /**
  * Health check & Browser info endpoints
  */
@@ -92,8 +56,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'ArogyaSetu Edge WhatsApp AI Bot',
-    version: '2.0.0',
-    twilioClient: !!twilioClient,
+    version: '2.1.0',
     timestamp: new Date().toISOString()
   });
 });
@@ -111,6 +74,9 @@ app.get('/whatsapp/webhook', (req, res) => {
  */
 async function fetchMediaAsBase64(mediaUrl) {
   try {
+    const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
+    const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
+
     const authHeader = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN)
       ? 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')
       : null;
@@ -122,7 +88,7 @@ async function fetchMediaAsBase64(mediaUrl) {
 
     const response = await fetch(mediaUrl, { headers });
     if (!response.ok) {
-      console.warn(`[WhatsApp Server] Media fetch failed (${response.status}), retrying without auth headers...`);
+      console.warn(`[WhatsApp Server] Media fetch failed (${response.status}), retrying without auth...`);
       const retryResponse = await fetch(mediaUrl);
       if (!retryResponse.ok) return null;
       const arrayBuffer = await retryResponse.arrayBuffer();
@@ -138,21 +104,38 @@ async function fetchMediaAsBase64(mediaUrl) {
 }
 
 /**
- * Process the message in the background and send reply via Twilio REST API
+ * Helper: Race a promise against a timeout (in ms).
+ * Returns fallback value if the promise takes too long.
  */
-async function processAndReply(body) {
-  const userMessage = (body.Body || '').trim();
-  const fromNumber = body.From || '';
-  const numMedia = parseInt(body.NumMedia || '0', 10);
-  const mediaUrl = body.MediaUrl0 || '';
-  const contentType = body.MediaContentType0 || '';
+function withTimeout(promise, ms, fallbackValue) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallbackValue), ms))
+  ]);
+}
 
-  console.log(`\n[WhatsApp Webhook] Processing message from ${fromNumber}`);
-  console.log(`Text: "${userMessage}" | Media Count: ${numMedia} | Type: ${contentType}`);
-
-  let replyText = '';
+/**
+ * Main Twilio WhatsApp Webhook Route
+ * Uses TwiML inline response (most reliable for Twilio Sandbox).
+ * Gemini API calls have a strict 10-second timeout to prevent Twilio webhook timeout.
+ */
+app.post('/whatsapp/webhook', async (req, res) => {
+  const twiml = new MessagingResponse();
 
   try {
+    const body = req.body || {};
+    const userMessage = (body.Body || '').trim();
+    const fromNumber = body.From || 'User';
+    const numMedia = parseInt(body.NumMedia || '0', 10);
+    const mediaUrl = body.MediaUrl0 || '';
+    const contentType = body.MediaContentType0 || '';
+
+    console.log(`\n[WhatsApp Webhook] Message received from ${fromNumber}`);
+    console.log(`Text: "${userMessage}" | Media Count: ${numMedia} | Type: ${contentType}`);
+
+    let replyText = '';
+    const GEMINI_TIMEOUT = 10000; // 10 seconds max for AI processing
+
     // 1. EMERGENCY KEYWORDS DETECTION
     const lowerText = userMessage.toLowerCase();
     if (
@@ -180,70 +163,52 @@ async function processAndReply(body) {
     // 3. MEDIA ATTACHMENTS (PHOTOS / VOICE NOTES / DOCUMENTS)
     else if (numMedia > 0 && mediaUrl) {
       console.log(`[WhatsApp Server] Downloading media attachment from Twilio...`);
-      const base64Data = await fetchMediaAsBase64(mediaUrl);
+      const base64Data = await withTimeout(fetchMediaAsBase64(mediaUrl), GEMINI_TIMEOUT, null);
 
-      if (contentType.startsWith('image/')) {
-        console.log(`[WhatsApp Server] Processing photo visual triage with Gemini Vision...`);
-        replyText = await processWhatsAppImageQuery(base64Data, contentType, userMessage);
+      if (base64Data && contentType.startsWith('image/')) {
+        console.log(`[WhatsApp Server] Processing photo with Gemini Vision (10s timeout)...`);
+        const fallbackImg = `📌 *ArogyaSetu Image Triage*:\n• Photo received.\n• *Advice*: Keep the area clean and dry.\n• *Next Step*: Visit your nearest PHC Doctor for examination.`;
+        replyText = await withTimeout(processWhatsAppImageQuery(base64Data, contentType, userMessage), GEMINI_TIMEOUT, fallbackImg);
       } 
-      else if (contentType.startsWith('audio/')) {
-        console.log(`[WhatsApp Server] Processing voice note triage with Gemini Audio...`);
-        replyText = await processWhatsAppAudioQuery(base64Data, contentType, userMessage);
+      else if (base64Data && contentType.startsWith('audio/')) {
+        console.log(`[WhatsApp Server] Processing voice note with Gemini Audio (10s timeout)...`);
+        const fallbackAudio = `📌 *ArogyaSetu Voice Triage*:\n• Voice note received.\n• *Advice*: Please describe your symptoms in text for faster analysis.\n• *Next Step*: Visit your nearest PHC if symptoms persist.`;
+        replyText = await withTimeout(processWhatsAppAudioQuery(base64Data, contentType, userMessage), GEMINI_TIMEOUT, fallbackAudio);
       } 
       else {
-        replyText = `📄 *Document Received*\n• Document payload processed successfully.\n• *Advice*: Please visit your local Primary Health Centre (PHC) for report review or send a clear photo of the report page.`;
+        replyText = `📄 *Document Received*\n• Document processed successfully.\n• *Advice*: Visit your local PHC for report review or send a clear photo.`;
       }
     }
 
     // 4. GENERAL TEXT CONSULTATION / SYMPTOM TRIAGE
     else {
-      console.log(`[WhatsApp Server] Processing text triage query with Gemini AI...`);
-      replyText = await processWhatsAppTextQuery(userMessage);
+      console.log(`[WhatsApp Server] Processing text triage with Gemini AI (10s timeout)...`);
+      const fallbackText = `📌 *ArogyaSetu Medical Guidance*:\n• Monitor your symptoms closely and get adequate rest.\n• Stay hydrated with clean water and nutritious light meals.\n• If symptoms persist or worsen, visit your nearest Primary Health Centre (PHC) or call 108.`;
+      replyText = await withTimeout(processWhatsAppTextQuery(userMessage), GEMINI_TIMEOUT, fallbackText);
     }
+
+    // Construct TwiML XML Response
+    twiml.message(replyText);
+    console.log(`[WhatsApp Webhook] Sending reply (${replyText.length} chars) to ${fromNumber}`);
+
+    res.set('Content-Type', 'text/xml');
+    return res.status(200).send(twiml.toString());
+
   } catch (error) {
-    console.error('[WhatsApp Bot] Error processing message:', error);
-    replyText = '📌 *ArogyaSetu Edge*: Message received. If you have an urgent medical query, please visit your nearest Primary Health Centre (PHC) or call 108.';
+    console.error('[WhatsApp Webhook Error]:', error);
+    
+    // Fail-safe TwiML response
+    twiml.message('📌 *ArogyaSetu Edge*: Message received. If you have an urgent medical query, please visit your nearest Primary Health Centre (PHC) or call 108.');
+    res.set('Content-Type', 'text/xml');
+    return res.status(200).send(twiml.toString());
   }
-
-  // Send the reply via Twilio REST API
-  if (fromNumber && replyText) {
-    const sent = await sendWhatsAppMessage(fromNumber, replyText);
-    if (!sent) {
-      console.error('[WhatsApp Bot] Failed to send async reply to', fromNumber);
-    }
-  }
-}
-
-/**
- * Main Twilio WhatsApp Webhook Route
- * 
- * Strategy: Respond IMMEDIATELY with empty TwiML (200 OK) so Twilio doesn't timeout.
- * Then process the message asynchronously and send the reply via Twilio REST API.
- */
-app.post('/whatsapp/webhook', async (req, res) => {
-  const body = req.body || {};
-  const fromNumber = body.From || 'Unknown';
-  const userMessage = (body.Body || '').trim();
-
-  console.log(`\n[WhatsApp Webhook] Incoming from ${fromNumber}: "${userMessage}"`);
-
-  // IMMEDIATELY respond with empty TwiML so Twilio doesn't timeout
-  const twiml = new MessagingResponse();
-  res.set('Content-Type', 'text/xml');
-  res.status(200).send(twiml.toString());
-
-  // Process in background and send reply via REST API
-  processAndReply(body).catch(err => {
-    console.error('[WhatsApp Bot] Background processing error:', err);
-  });
 });
 
 // Start Server on 0.0.0.0
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n======================================================`);
-  console.log(`🚀 ArogyaSetu Edge WhatsApp Bot Server v2.0 Online!`);
+  console.log(`🚀 ArogyaSetu Edge WhatsApp Bot Server v2.1 Online!`);
   console.log(`📡 Listening on: http://127.0.0.1:${PORT}`);
   console.log(`🔗 Webhook Endpoint: http://127.0.0.1:${PORT}/whatsapp/webhook`);
-  console.log(`📤 Async Replies: ${twilioClient ? 'ENABLED (Twilio REST API)' : 'DISABLED (missing credentials)'}`);
   console.log(`======================================================\n`);
 });
