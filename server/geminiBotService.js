@@ -88,7 +88,7 @@ Include:
 Detect user language (Hindi, Marathi, English) and answer in the same language. Keep response under 150 words.`;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
     
     const payload = {
       contents: [
@@ -148,7 +148,7 @@ export async function processWhatsAppImageQuery(imageBase64, mimeType = 'image/j
     : 'Analyze this medical image (skin condition, wound, eye infection, or medical document/report). Provide a clinical visual triage summary in simple WhatsApp bullet points. Include: 1. Visual Findings 2. Risk Level (Green/Yellow/Red) 3. Immediate Care / First Aid Steps 4. PHC Doctor Referral Advice.';
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
     const payload = {
       contents: [
@@ -209,7 +209,7 @@ export async function processWhatsAppAudioQuery(audioBase64, mimeType = 'audio/o
   }
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
 
     const payload = {
       contents: [
