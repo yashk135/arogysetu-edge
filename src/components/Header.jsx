@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, ShieldCheck, Activity, Key, CheckCircle } from 'lucide-react';
 import { getApiKey, saveApiKey, hasApiKey } from '../services/geminiService';
 
-export default function Header() {
+export default function Header({ setActiveTab }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(getApiKey());
@@ -32,76 +32,91 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur-md border-b border-[#222222] px-4 py-3">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        
-        {/* Brand Logo & Name */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#161616] border border-[#2E2E2E] flex items-center justify-center text-emerald-400">
-            <Activity className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-heading font-extrabold text-lg tracking-tight text-white">
-                ArogyaSetu <span className="text-emerald-400">Edge</span>
-              </span>
+    <>
+      <header className="sticky top-0 z-40 bg-[#080808]/95 backdrop-blur-md border-b border-[#222222] px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          
+          {/* Brand Logo & Name */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#161616] border border-[#2E2E2E] flex items-center justify-center text-emerald-400">
+              <Activity className="w-5 h-5" />
             </div>
-            <p className="text-[11px] text-zinc-400 hidden sm:block">
-              Healthcare Navigation & Triage Platform
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-heading font-extrabold text-lg tracking-tight text-white">
+                  ArogyaSetu <span className="text-emerald-400">Edge</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 hidden sm:block">
+                Healthcare Navigation & Triage Platform
+              </p>
+            </div>
           </div>
+
+          {/* Status Indicators */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Emergency 108 SOS Button */}
+            <button
+              onClick={() => setActiveTab && setActiveTab('emergency')}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-950/80 border border-red-700/70 text-red-300 hover:border-red-500 hover:text-white transition-all shadow-sm shadow-red-950"
+              title="Open 108 Emergency Hub"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="font-heading font-bold">108 SOS</span>
+            </button>
+
+            {/* Gemini API Key Button */}
+            <button
+              onClick={() => setShowKeyModal(true)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                hasApiKey()
+                  ? 'bg-[#121915] border-emerald-800/60 text-emerald-300 hover:border-emerald-500'
+                  : 'bg-[#1F1414] border-red-900/60 text-red-300 hover:border-red-500 animate-pulse'
+              }`}
+              title="Configure Gemini API Key"
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>{hasApiKey() ? 'API Key Active' : 'Set API Key'}</span>
+            </button>
+
+            {/* Network Status Pill */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${
+                isOnline
+                  ? 'bg-[#121814] border-emerald-900/60 text-emerald-400'
+                  : 'bg-[#1F1712] border-amber-900/60 text-amber-400'
+              }`}
+            >
+              {isOnline ? (
+                <>
+                  <Wifi className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Online Sync</span>
+                  <span className="sm:hidden">Online</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3.5 h-3.5" />
+                  <span>Offline</span>
+                </>
+              )}
+            </div>
+
+            {/* ABDM Readiness Badge */}
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#121212] border border-[#2A2A2A] text-zinc-300 text-xs font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>ABDM Standard</span>
+            </div>
+          </div>
+
         </div>
+      </header>
 
-        {/* Status Indicators */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Gemini API Key Button */}
-          <button
-            onClick={() => setShowKeyModal(true)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-              hasApiKey()
-                ? 'bg-[#121915] border-emerald-800/60 text-emerald-300 hover:border-emerald-500'
-                : 'bg-[#1F1414] border-red-900/60 text-red-300 hover:border-red-500 animate-pulse'
-            }`}
-            title="Configure Gemini API Key"
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span>{hasApiKey() ? 'API Key Active' : 'Set API Key'}</span>
-          </button>
-
-          {/* Network Status Pill */}
-          <div
-            className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border ${
-              isOnline
-                ? 'bg-[#121814] border-emerald-900/60 text-emerald-400'
-                : 'bg-[#1F1712] border-amber-900/60 text-amber-400'
-            }`}
-          >
-            {isOnline ? (
-              <>
-                <Wifi className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Online Sync</span>
-                <span className="sm:hidden">Online</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3.5 h-3.5" />
-                <span>Offline</span>
-              </>
-            )}
-          </div>
-
-          {/* ABDM Readiness Badge */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#121212] border border-[#2A2A2A] text-zinc-300 text-xs font-medium">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>ABDM Standard</span>
-          </div>
-        </div>
-
-      </div>
-
-      {/* API Key Modal */}
+      {/* API Key Modal — Rendered OUTSIDE header for proper full-screen overlay */}
       {showKeyModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#111111] border border-[#2E2E2E] rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#242424] pb-3">
               <div className="flex items-center gap-2">
@@ -161,6 +176,6 @@ export default function Header() {
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

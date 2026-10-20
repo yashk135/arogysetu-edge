@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Mic, FileText, Users, Smartphone, Activity, ExternalLink, X, MessageSquare, QrCode } from 'lucide-react';
+import { Camera, Mic, FileText, Users, Smartphone, Activity, ExternalLink, X, MessageSquare, QrCode, PhoneCall, ChevronRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function Dashboard({ setActiveTab }) {
@@ -56,6 +56,32 @@ export default function Dashboard({ setActiveTab }) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 24/7 108 Emergency Hub Banner */}
+      <div
+        onClick={() => setActiveTab('emergency')}
+        className="rounded-2xl bg-gradient-to-r from-[#220B0B] via-[#140808] to-[#101010] border border-red-800/60 hover:border-red-500/80 p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer group transition-all shadow-xl shadow-red-950/20"
+      >
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-red-600/20 border border-red-600/40 flex items-center justify-center text-red-500 shrink-0 group-hover:scale-105 transition-transform">
+            <PhoneCall className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-heading font-extrabold text-sm sm:text-base text-white group-hover:text-red-400 transition-colors">
+                24/7 Emergency Hub & 108 SOS
+              </h4>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-red-600/20 text-red-300 border border-red-600/40 px-2 py-0.5 rounded-full uppercase">
+                🔴 100% Offline
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              One-tap 108 ambulance dialer, 10 WHO offline first aid protocols, 2G SMS dispatch, and patient triage QR.
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-500 group-hover:text-red-400 shrink-0 group-hover:translate-x-1 transition-all" />
       </div>
 
       {/* Main Module Navigation Grid */}

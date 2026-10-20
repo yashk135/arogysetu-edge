@@ -1,11 +1,11 @@
 import { openDB } from 'idb';
 
-const DB_NAME = 'arogyasetu_edge_db';
-const DB_VERSION = 1;
+export const DB_NAME = 'arogyasetu_edge_db';
+export const DB_VERSION = 2;
 
 export async function initDB() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion, newVersion, transaction) {
       // Patients store
       if (!db.objectStoreNames.contains('patients')) {
         const patientStore = db.createObjectStore('patients', { keyPath: 'id' });
@@ -20,6 +20,14 @@ export async function initDB() {
         triageStore.createIndex('patientId', 'patientId', { unique: false });
         triageStore.createIndex('riskLevel', 'riskLevel', { unique: false });
         triageStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+
+      // Offline Queue store (Added in DB_VERSION 2)
+      if (!db.objectStoreNames.contains('offline_queue')) {
+        const queueStore = db.createObjectStore('offline_queue', { keyPath: 'id' });
+        queueStore.createIndex('type', 'type', { unique: false });
+        queueStore.createIndex('status', 'status', { unique: false });
+        queueStore.createIndex('createdAt', 'createdAt', { unique: false });
       }
     },
   });
