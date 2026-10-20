@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { isOnline, addToOfflineQueue } from '../services/offlineQueue';
 import { analyzeMedicalReport, translateResult, getApiKey, saveApiKey, hasApiKey } from '../services/geminiService';
 import PassportSaveAndChat from '../components/PassportSaveAndChat';
 import { parseMedicalDocument } from '../services/ocrService';
@@ -223,7 +224,27 @@ export default function ReportOCRPage({ onSaveResult }) {
     setReportResult(null);
 
     try {
-      if (hasApiKey()) {
+      // OFFLINE MODE: Save to queue + use local Tesseract OCR
+      if (!isOnline()) {
+        try {
+          await addToOfflineQueue({
+            type: 'ocr',
+            payload: {
+              file: selectedFile,
+              fileType: fileType,
+              notes: userNotes,
+              lang: selectedLang.name,
+            },
+            patientName: 'Report OCR Patient',
+            metadata: { language: selectedLang.name },
+          });
+        } catch (queueErr) {
+          console.warn('[ReportOCR] Failed to queue offline:', queueErr);
+        }
+        
+        setErrorMessage('📡 Offline Mode: Local OCR scan shown below. Full AI interpretation will run automatically when internet returns.');
+        // Don't attempt the API call, fall through to local Tesseract OCR fallback
+      } else if (hasApiKey()) {
         try {
           const aiResponse = await analyzeMedicalReport(
             selectedFile,

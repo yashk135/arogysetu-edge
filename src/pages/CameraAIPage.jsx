@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { isOnline, addToOfflineQueue } from '../services/offlineQueue';
 import { analyzeImage, translateResult, getApiKey, saveApiKey, hasApiKey } from '../services/geminiService';
 import PassportSaveAndChat from '../components/PassportSaveAndChat';
 import { analyzeAnemia, analyzeJaundice } from '../services/cameraAI';
@@ -201,7 +202,29 @@ export default function CameraAIPage({ onSaveResult }) {
     const isBurn = notesLower.includes('जला') || notesLower.includes('burn');
 
     try {
-      if (hasApiKey()) {
+      // OFFLINE MODE: Save to queue + show local advice
+      if (!isOnline()) {
+        try {
+          // Save image to offline queue for later AI processing
+          await addToOfflineQueue({
+            type: 'camera',
+            payload: {
+              image: selectedImage,
+              notes: userNotes,
+              lang: selectedLang.name,
+            },
+            patientName: 'Camera Scan Patient',
+            metadata: { language: selectedLang.name },
+          });
+        } catch (queueErr) {
+          console.warn('[CameraAI] Failed to queue offline:', queueErr);
+        }
+
+        // Fall through to local fallback analysis below (don't return, let existing local fallback handle it)
+        // Set a notice that this is offline mode
+        setErrorMessage('📡 Offline Mode: Local assessment shown below. Full AI analysis will run automatically when internet returns.');
+        // Don't attempt the API call, skip to local fallback
+      } else if (hasApiKey()) {
         try {
           const aiResponse = await analyzeImage(selectedImage, userNotes, selectedLang.name);
           setAnalysisResult({

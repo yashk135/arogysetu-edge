@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { isOnline, addToOfflineQueue } from '../services/offlineQueue';
 import { analyzeSymptoms, translateResult, getApiKey, saveApiKey, hasApiKey } from '../services/geminiService';
 import PassportSaveAndChat from '../components/PassportSaveAndChat';
 import { parseSymptomTranscript } from '../services/voiceTriage';
@@ -248,7 +249,25 @@ export default function VoiceTriagePage({ onSaveResult }) {
     setTriageResult(null);
 
     try {
-      if (hasApiKey()) {
+      // OFFLINE MODE: Save to queue + show local triage
+      if (!isOnline()) {
+        try {
+          await addToOfflineQueue({
+            type: 'voice',
+            payload: {
+              transcript: textToProcess,
+              lang: selectedLang.name,
+            },
+            patientName: 'Voice Triage Patient',
+            metadata: { language: selectedLang.name },
+          });
+        } catch (queueErr) {
+          console.warn('[VoiceTriage] Failed to queue offline:', queueErr);
+        }
+        
+        setErrorMessage('📡 Offline Mode: Local triage shown below. Full AI analysis will run automatically when internet returns.');
+        // Don't attempt the API call, skip to local fallback
+      } else if (hasApiKey()) {
         try {
           const aiRes = await analyzeSymptoms(text, selectedLang.name);
           const formattedResult = {
