@@ -23,6 +23,42 @@ app.use(express.json());
 
 const { MessagingResponse } = twilio.twiml;
 
+// Twilio REST client for sending messages asynchronously
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
+const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+17372508034';
+
+let twilioClient = null;
+if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+  twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  console.log('[WhatsApp Bot] Twilio REST client initialized for async messaging.');
+} else {
+  console.warn('[WhatsApp Bot] TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing! Will use TwiML fallback.');
+}
+
+/**
+ * Send a WhatsApp message using Twilio REST API (async, no timeout issues)
+ */
+async function sendWhatsAppMessage(toNumber, messageBody) {
+  if (!twilioClient) {
+    console.error('[WhatsApp Bot] No Twilio client available to send message.');
+    return false;
+  }
+
+  try {
+    const msg = await twilioClient.messages.create({
+      from: TWILIO_WHATSAPP_FROM,
+      to: toNumber,
+      body: messageBody
+    });
+    console.log(`[WhatsApp Bot] Message sent successfully! SID: ${msg.sid}`);
+    return true;
+  } catch (err) {
+    console.error('[WhatsApp Bot] Failed to send message via Twilio REST API:', err.message);
+    return false;
+  }
+}
+
 /**
  * Health check & Browser info endpoints
  */
@@ -44,7 +80,7 @@ const getHtmlStatusPage = () => `
   <div class="card">
     <span class="badge">🟢 ACTIVE & ONLINE</span>
     <h1>ArogyaSetu Edge WhatsApp Bot</h1>
-    <p>The Twilio WhatsApp Webhook service is running smoothly on Port 5000.</p>
+    <p>The Twilio WhatsApp Webhook service is running smoothly on Port ${PORT}.</p>
     <div class="endpoint">POST /whatsapp/webhook</div>
     <p style="font-size: 13px;">To connect with Twilio Sandbox or live number, set your webhook URL in Twilio Console to your public ngrok/server URL.</p>
   </div>
@@ -56,7 +92,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'ArogyaSetu Edge WhatsApp AI Bot',
-    version: '1.0.0',
+    version: '2.0.0',
+    twilioClient: !!twilioClient,
     timestamp: new Date().toISOString()
   });
 });
@@ -74,8 +111,8 @@ app.get('/whatsapp/webhook', (req, res) => {
  */
 async function fetchMediaAsBase64(mediaUrl) {
   try {
-    const authHeader = (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
-      ? 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
+    const authHeader = (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN)
+      ? 'Basic ' + Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString('base64')
       : null;
 
     const headers = {};
@@ -101,24 +138,21 @@ async function fetchMediaAsBase64(mediaUrl) {
 }
 
 /**
- * Main Twilio WhatsApp Webhook Route
+ * Process the message in the background and send reply via Twilio REST API
  */
-app.post('/whatsapp/webhook', async (req, res) => {
-  const twiml = new MessagingResponse();
+async function processAndReply(body) {
+  const userMessage = (body.Body || '').trim();
+  const fromNumber = body.From || '';
+  const numMedia = parseInt(body.NumMedia || '0', 10);
+  const mediaUrl = body.MediaUrl0 || '';
+  const contentType = body.MediaContentType0 || '';
+
+  console.log(`\n[WhatsApp Webhook] Processing message from ${fromNumber}`);
+  console.log(`Text: "${userMessage}" | Media Count: ${numMedia} | Type: ${contentType}`);
+
+  let replyText = '';
 
   try {
-    const body = req.body || {};
-    const userMessage = (body.Body || '').trim();
-    const fromNumber = body.From || 'User';
-    const numMedia = parseInt(body.NumMedia || '0', 10);
-    const mediaUrl = body.MediaUrl0 || '';
-    const contentType = body.MediaContentType0 || '';
-
-    console.log(`\n[WhatsApp Webhook] Message received from ${fromNumber}`);
-    console.log(`Text: "${userMessage}" | Media Count: ${numMedia} | Type: ${contentType}`);
-
-    let replyText = '';
-
     // 1. EMERGENCY KEYWORDS DETECTION
     const lowerText = userMessage.toLowerCase();
     if (
@@ -166,28 +200,50 @@ app.post('/whatsapp/webhook', async (req, res) => {
       console.log(`[WhatsApp Server] Processing text triage query with Gemini AI...`);
       replyText = await processWhatsAppTextQuery(userMessage);
     }
-
-    // Construct TwiML XML Response
-    twiml.message(replyText);
-
-    res.set('Content-Type', 'text/xml');
-    return res.status(200).send(twiml.toString());
-
   } catch (error) {
-    console.error('[WhatsApp Webhook Error]:', error);
-    
-    // Fail-safe TwiML response
-    twiml.message('📌 *ArogyaSetu Edge*: Message received. If you have an urgent medical query, please visit your nearest Primary Health Centre (PHC) or call 108.');
-    res.set('Content-Type', 'text/xml');
-    return res.status(200).send(twiml.toString());
+    console.error('[WhatsApp Bot] Error processing message:', error);
+    replyText = '📌 *ArogyaSetu Edge*: Message received. If you have an urgent medical query, please visit your nearest Primary Health Centre (PHC) or call 108.';
   }
+
+  // Send the reply via Twilio REST API
+  if (fromNumber && replyText) {
+    const sent = await sendWhatsAppMessage(fromNumber, replyText);
+    if (!sent) {
+      console.error('[WhatsApp Bot] Failed to send async reply to', fromNumber);
+    }
+  }
+}
+
+/**
+ * Main Twilio WhatsApp Webhook Route
+ * 
+ * Strategy: Respond IMMEDIATELY with empty TwiML (200 OK) so Twilio doesn't timeout.
+ * Then process the message asynchronously and send the reply via Twilio REST API.
+ */
+app.post('/whatsapp/webhook', async (req, res) => {
+  const body = req.body || {};
+  const fromNumber = body.From || 'Unknown';
+  const userMessage = (body.Body || '').trim();
+
+  console.log(`\n[WhatsApp Webhook] Incoming from ${fromNumber}: "${userMessage}"`);
+
+  // IMMEDIATELY respond with empty TwiML so Twilio doesn't timeout
+  const twiml = new MessagingResponse();
+  res.set('Content-Type', 'text/xml');
+  res.status(200).send(twiml.toString());
+
+  // Process in background and send reply via REST API
+  processAndReply(body).catch(err => {
+    console.error('[WhatsApp Bot] Background processing error:', err);
+  });
 });
 
 // Start Server on 0.0.0.0
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n======================================================`);
-  console.log(`🚀 ArogyaSetu Edge WhatsApp Bot Server Online!`);
+  console.log(`🚀 ArogyaSetu Edge WhatsApp Bot Server v2.0 Online!`);
   console.log(`📡 Listening on: http://127.0.0.1:${PORT}`);
   console.log(`🔗 Webhook Endpoint: http://127.0.0.1:${PORT}/whatsapp/webhook`);
+  console.log(`📤 Async Replies: ${twilioClient ? 'ENABLED (Twilio REST API)' : 'DISABLED (missing credentials)'}`);
   console.log(`======================================================\n`);
 });
